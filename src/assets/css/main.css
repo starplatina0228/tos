@@ -1,0 +1,39 @@
+:root {
+    /* 메인 색상 */
+    --primary-color: #4361ee;
+    --secondary-color: #3f37c9;
+    --accent-color: #4cc9f0;
+
+    /* 중립 색상 */
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    --gray-color: #6c757d;
+
+    /* 배경색 */
+    --bg-color: #f0f2f5;
+
+    /* 폰트 관련 */
+    --font-family: 'Noto Sans KR', sans-serif;
+    --heading-font-weight: 700;
+    --body-font-weight: 400;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--dark-color);
+  }
+
+  button {
+    cursor: pointer;
+    font-family: var(--font-family);
+  }
+
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+  }
