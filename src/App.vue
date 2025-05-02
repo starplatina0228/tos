@@ -17,6 +17,13 @@
         </question-component>
       </div>
 
+      <div v-else-if="currentView === 'optimization'" key="optimization">
+        <optimization-component
+          :simulation-time="10000"
+          @optimization-completed="showSchedule"
+        />
+      </div>
+
       <div v-else-if="currentView === 'schedule'" key="schedule">
         <schedule-component
           :scheduleData="scheduleData"
@@ -30,6 +37,7 @@
 <script>
 import StartComponent from './components/StartComponent.vue';
 import QuestionComponent from './components/QuestionComponent.vue';
+import OptimizationComponent from './components/OptimizationComponent.vue';
 import ScheduleComponent from './components/ScheduleComponent.vue';
 
 export default {
@@ -37,6 +45,7 @@ export default {
   components: {
     StartComponent,
     QuestionComponent,
+    OptimizationComponent,
     ScheduleComponent
   },
   data() {
@@ -45,10 +54,18 @@ export default {
       currentQuestionIndex: 0,
       questions: [
         '아침에 일찍 일어나는 것을 선호하나요?',
-        '저녁에 공부하는 것을 좋아하나요?',
-        '주말에 공부하는 것을 선호하나요?',
-        '장시간 집중하는 것이 편안한가요?',
-        '휴식 시간이 자주 필요한가요?'
+        '수업을 듣는 것을 좋아하나요?',
+        '점심시간을 친구들과 보내나요?',
+        '통학을 하고 있나요?',
+        '자주 운동을 하나요?',
+        '자주 카페에 가나요?',
+        '공강이 있었으면 좋겠나요?',
+        '자주 과제를 하나요?',
+        '자주 시험을 보나요?',
+        '자주 스터디를 하나요?',
+        '자주 동아리에 가나요?',
+        '자주 친구들과 놀러가나요?',
+        '우주공강은 피하고 싶나요?'
       ],
       answers: [],
       scheduleData: []
@@ -72,9 +89,13 @@ export default {
       if (this.currentQuestionIndex < this.questions.length - 1) {
         this.currentQuestionIndex++;
       } else {
-        this.generateSchedule();
-        this.currentView = 'schedule';
+        // 모든 질문에 답변을 완료하면 최적화 화면으로 이동
+        this.currentView = 'optimization';
       }
+    },
+    showSchedule() {
+      this.generateSchedule();
+      this.currentView = 'schedule';
     },
     generateSchedule() {
       // 여기서 답변을 기반으로 스케줄 생성 로직 구현
@@ -101,14 +122,5 @@ export default {
   min-height: 100vh;
 }
 
-/* 페이지 전환 애니메이션 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+/* 페이지 전환 애니메이션은 이제 style.css에 포함됩니다 */
 </style>

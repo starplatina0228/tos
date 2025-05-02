@@ -1,0 +1,125 @@
+/* Global Variables */
+:root {
+  /* 메인 색상 */
+  --primary-color: #4361ee;
+  --secondary-color: #3f37c9;
+  --accent-color: #4cc9f0;
+
+  /* 중립 색상 */
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+  --gray-color: #6c757d;
+
+  /* 배경색 */
+  --bg-color: #f0f2f5;
+
+  /* 폰트 관련 */
+  --font-family: 'Noto Sans KR', sans-serif;
+  --heading-font-weight: 700;
+  --body-font-weight: 400;
+}
+
+/* Reset and Base Styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--dark-color);
+}
+
+button {
+  cursor: pointer;
+  font-family: var(--font-family);
+}
+
+/* Common Container Styles */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
+/* Page Containers */
+.start-container,
+.question-container,
+.optimization-container,
+.schedule-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Card Styles */
+.start-content,
+.question-card,
+.schedule-card,
+.optimization-card {
+  background-color: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Button Styles */
+.action-button,
+.start-button,
+.answer-button {
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.action-button:hover,
+.start-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+}
+
+/* Primary Button Style */
+.primary-button {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+}
+
+.primary-button:hover {
+  background-color: var(--secondary-color);
+}
+
+/* Status Messages */
+.status-message {
+  border-radius: 8px;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Animation Styles */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .start-content,
+  .question-card,
+  .schedule-card,
+  .optimization-card {
+    max-width: 95%;
+  }
+}
