@@ -1,31 +1,31 @@
 <template>
-    <div class="question-container">
-      <div class="question-card">
-        <div class="progress-bar">
-          <div class="progress" :style="{ width: `${progress}%` }"></div>
-        </div>
+  <div class="question-container">
+    <div class="question-card">
+      <div class="progress-bar">
+        <div class="progress" :style="{ width: `${progress}%` }"></div>
+      </div>
 
-        <div class="question-content">
-          <h2 class="question-number">질문 {{ questionNumber }}</h2>
-          <div class="question-block">
-            <slot name="question">Question Block</slot>
-          </div>
-        </div>
-
-        <div class="button-group">
-          <button class="answer-button yes-button" @click="onAnswer(true)">
-            <span class="button-text">YES</span>
-            <span class="button-icon">✓</span>
-          </button>
-
-          <button class="answer-button no-button" @click="onAnswer(false)">
-            <span class="button-text">NO</span>
-            <span class="button-icon">✕</span>
-          </button>
+      <div class="question-content">
+        <h2 class="question-number">질문 {{ questionNumber }}/{{ totalQuestions }}</h2>
+        <div class="question-block">
+          <slot name="question">Question Block</slot>
         </div>
       </div>
+
+      <div class="button-group">
+        <button class="answer-button yes-button" @click="onAnswer(true)">
+          <span class="button-text">예</span>
+          <span class="button-icon">✓</span>
+        </button>
+
+        <button class="answer-button no-button" @click="onAnswer(false)">
+          <span class="button-text">아니오</span>
+          <span class="button-icon">✕</span>
+        </button>
+      </div>
     </div>
-  </template>
+  </div>
+</template>
 
   <script>
   export default {

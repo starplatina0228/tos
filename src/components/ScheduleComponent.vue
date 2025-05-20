@@ -60,223 +60,225 @@
         </div>
       </div>
     </div>
-  </template>
+</template>
 
-  <script>
-  export default {
-    name: 'ScheduleComponent',
-    props: {
-      scheduleData: {
-        type: Array,
-        default: () => []
-      }
+<script>
+export default {
+  name: 'ScheduleComponent',
+  props: {
+    scheduleData: {
+      type: Array,
+      default: () => []
+    }
+  },
+  computed: {
+    scheduleItems() {
+      // props로 받은 데이터 사용
+      return this.scheduleData.length > 0 ? this.scheduleData : [
+        // 기본 데이터 (props가 비어있을 경우)
+        { day: 1, startHour: 9, duration: 2, title: '공업수학', type: 'study' },
+        { day: 1, startHour: 13, duration: 2, title: '대학영어', type: 'study' },
+        { day: 2, startHour: 10, duration: 2, title: '일반물리', type: 'study' },
+        { day: 3, startHour: 14, duration: 3, title: '종합설계', type: 'project' },
+        { day: 4, startHour: 9, duration: 1, title: '러닝', type: 'exercise' },
+        { day: 5, startHour: 11, duration: 2, title: 'OR', type: 'hobby' },
+        { day: 5, startHour: 15, duration: 2, title: '알바', type: 'social' }
+      ];
+    }
+  },
+  methods: {
+    onRestart() {
+      this.$emit('restart');
     },
-    data() {
-      return {
-        scheduleItems: [
-          { day: 1, startHour: 9, duration: 2, title: '공업수학', type: 'study' },
-          { day: 1, startHour: 13, duration: 2, title: '대학영어', type: 'study' },
-          { day: 2, startHour: 10, duration: 2, title: '일반물리', type: 'study' },
-          { day: 3, startHour: 14, duration: 3, title: '종합설계', type: 'project' },
-          { day: 4, startHour: 9, duration: 1, title: '러닝', type: 'exercise' },
-          { day: 5, startHour: 11, duration: 2, title: 'OR', type: 'hobby' },
-          { day: 5, startHour: 15, duration: 2, title: '알바', type: 'social' }
-        ]
-      }
-    },
-    methods: {
-      onRestart() {
-        this.$emit('restart');
-      },
-      onSave() {
-        // 저장 로직 구현
-        alert('시간표가 저장되었습니다!');
-      }
+    onSave() {
+      // 저장 로직 구현
+      alert('시간표가 저장되었습니다!');
     }
   }
-  </script>
+}
+</script>
 
-  <style scoped>
-  .schedule-container {
-    width: 100%;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    padding: 20px;
-    box-sizing: border-box;
-  }
+<style scoped>
+.schedule-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  padding: 20px;
+  box-sizing: border-box;
+}
 
+.schedule-card {
+  background-color: white;
+  border-radius: 16px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 900px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.schedule-header {
+  padding: 30px;
+  text-align: center;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.title {
+  color: var(--dark-color);
+  font-size: 28px;
+  margin-bottom: 8px;
+  font-weight: var(--heading-font-weight);
+}
+
+.subtitle {
+  color: var(--gray-color);
+  font-size: 16px;
+  margin: 0;
+}
+
+.schedule-content {
+  padding: 30px;
+}
+
+.timetable {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.day-header {
+  display: grid;
+  grid-template-columns: 60px repeat(5, 1fr);
+  text-align: center;
+  font-weight: 600;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 10px;
+}
+
+.day {
+  padding: 10px;
+}
+
+.timetable-grid {
+  display: flex;
+  position: relative;
+  margin-top: 15px;
+}
+
+.time-column {
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.time {
+  height: 60px;
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  color: var(--gray-color);
+  font-size: 14px;
+}
+
+.schedule-grid {
+  flex-grow: 1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(9, 60px);
+  gap: 1px;
+  background-color: #f8f9fa;
+}
+
+.schedule-item {
+  background-color: #e2e8f0;
+  border-radius: 6px;
+  padding: 8px;
+  margin: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  color: white;
+}
+
+.item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study {
+  background-color: var(--primary-color);
+}
+
+.project {
+  background-color: #38b2ac;
+}
+
+.exercise {
+  background-color: #ed8936;
+}
+
+.hobby {
+  background-color: #9f7aea;
+}
+
+.social {
+  background-color: #f56565;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 30px;
+  border-top: 1px solid #e9ecef;
+}
+
+.action-button {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.restart-button {
+  background-color: #e9ecef;
+  color: var(--gray-color);
+}
+
+.save-button {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.restart-button:hover {
+  background-color: #dee2e6;
+}
+
+.save-button:hover {
+  background-color: var(--secondary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
   .schedule-card {
-    background-color: white;
-    border-radius: 16px;
-    overflow: hidden;
-    width: 100%;
-    max-width: 900px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  }
-
-  .schedule-header {
-    padding: 30px;
-    text-align: center;
-    border-bottom: 1px solid #e9ecef;
+    max-width: 95%;
   }
 
   .title {
-    color: var(--dark-color);
-    font-size: 28px;
-    margin-bottom: 8px;
-    font-weight: var(--heading-font-weight);
-  }
-
-  .subtitle {
-    color: var(--gray-color);
-    font-size: 16px;
-    margin: 0;
-  }
-
-  .schedule-content {
-    padding: 30px;
-  }
-
-  .timetable {
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .day-header {
-    display: grid;
-    grid-template-columns: 60px repeat(5, 1fr);
-    text-align: center;
-    font-weight: 600;
-    border-bottom: 1px solid #e9ecef;
-    padding-bottom: 10px;
-  }
-
-  .day {
-    padding: 10px;
-  }
-
-  .timetable-grid {
-    display: flex;
-    position: relative;
-    margin-top: 15px;
-  }
-
-  .time-column {
-    width: 60px;
-    flex-shrink: 0;
-  }
-
-  .time {
-    height: 60px;
-    display: flex;
-    align-items: start;
-    justify-content: center;
-    color: var(--gray-color);
-    font-size: 14px;
-  }
-
-  .schedule-grid {
-    flex-grow: 1;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: repeat(9, 60px);
-    gap: 1px;
-    background-color: #f8f9fa;
+    font-size: 24px;
   }
 
   .schedule-item {
-    background-color: #e2e8f0;
-    border-radius: 6px;
-    padding: 8px;
-    margin: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    color: white;
+    font-size: 12px;
+    padding: 4px;
   }
-
-  .item-title {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .study {
-    background-color: var(--primary-color);
-  }
-
-  .project {
-    background-color: #38b2ac;
-  }
-
-  .exercise {
-    background-color: #ed8936;
-  }
-
-  .hobby {
-    background-color: #9f7aea;
-  }
-
-  .social {
-    background-color: #f56565;
-  }
-
-  .action-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    padding: 30px;
-    border-top: 1px solid #e9ecef;
-  }
-
-  .action-button {
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 500;
-    border: none;
-    transition: all 0.2s ease;
-  }
-
-  .restart-button {
-    background-color: #e9ecef;
-    color: var(--gray-color);
-  }
-
-  .save-button {
-    background-color: var(--primary-color);
-    color: white;
-  }
-
-  .restart-button:hover {
-    background-color: #dee2e6;
-  }
-
-  .save-button:hover {
-    background-color: var(--secondary-color);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
-  }
-
-  /* 반응형 디자인 */
-  @media (max-width: 768px) {
-    .schedule-card {
-      max-width: 95%;
-    }
-
-    .title {
-      font-size: 24px;
-    }
-
-    .schedule-item {
-      font-size: 12px;
-      padding: 4px;
-    }
-  }
-  </style>
+}
+</style>

@@ -2,7 +2,15 @@
   <div class="app-container">
     <transition name="fade" mode="out-in">
       <div v-if="currentView === 'start'" key="start">
-        <start-component @start-clicked="showQuestion"/>
+        <start-component @start-clicked="showGradeSelect"/>
+      </div>
+
+      <div v-else-if="currentView === 'grade-select'" key="grade-select">
+        <grade-select-component
+          :initialGrade="grade"
+          :initialCredits="desiredCredits"
+          @info-submitted="handleInfoSubmission"
+        />
       </div>
 
       <div v-else-if="currentView === 'question'" key="question">
@@ -20,6 +28,7 @@
       <div v-else-if="currentView === 'optimization'" key="optimization">
         <optimization-component
           :simulation-time="10000"
+          :optimization-data="optimizationData"
           @optimization-completed="showSchedule"
         />
       </div>
@@ -36,6 +45,7 @@
 
 <script>
 import StartComponent from './components/StartComponent.vue';
+import GradeSelectComponent from './components/GradeSelectComponent.vue';
 import QuestionComponent from './components/QuestionComponent.vue';
 import OptimizationComponent from './components/OptimizationComponent.vue';
 import ScheduleComponent from './components/ScheduleComponent.vue';
@@ -44,6 +54,7 @@ export default {
   name: 'App',
   components: {
     StartComponent,
+    GradeSelectComponent,
     QuestionComponent,
     OptimizationComponent,
     ScheduleComponent
@@ -52,23 +63,19 @@ export default {
     return {
       currentView: 'start',
       currentQuestionIndex: 0,
+      grade: null,
+      desiredCredits: 15,
       questions: [
-        '아침에 일찍 일어나는 것을 선호하나요?',
-        '수업을 듣는 것을 좋아하나요?',
-        '점심시간을 친구들과 보내나요?',
-        '통학을 하고 있나요?',
-        '자주 운동을 하나요?',
-        '자주 카페에 가나요?',
-        '공강이 있었으면 좋겠나요?',
-        '자주 과제를 하나요?',
-        '자주 시험을 보나요?',
-        '자주 스터디를 하나요?',
-        '자주 동아리에 가나요?',
-        '자주 친구들과 놀러가나요?',
-        '우주공강은 피하고 싶나요?'
+        '아침 수업을 선호하시나요?',                 // user_morning
+        '저녁 시간대 수업은 피하고 싶으신가요?',     // user_late
+        '점심 시간대(12~1시) 수업은 피하고 싶으신가요?', // user_lunch
+        '일주일에 최소 하루는 공강이 있었으면 좋겠나요?', // user_dayoff
+        '수업 사이 긴 공강은 피하고 싶으신가요?'     // user_no_large_gap
       ],
       answers: [],
-      scheduleData: []
+      scheduleData: [],
+      optimizationData: null,
+      apiResult: null
     }
   },
   computed: {
@@ -77,7 +84,12 @@ export default {
     }
   },
   methods: {
-    showQuestion() {
+    showGradeSelect() {
+      this.currentView = 'grade-select';
+    },
+    handleInfoSubmission(info) {
+      this.grade = info.grade;
+      this.desiredCredits = info.credits;
       this.currentView = 'question';
     },
     handleAnswer(answer) {
@@ -89,28 +101,89 @@ export default {
       if (this.currentQuestionIndex < this.questions.length - 1) {
         this.currentQuestionIndex++;
       } else {
-        // 모든 질문에 답변을 완료하면 최적화 화면으로 이동
+        // 모든 질문에 답변을 완료하면 최적화 준비
+        this.prepareOptimizationRequest();
         this.currentView = 'optimization';
       }
     },
-    showSchedule() {
-      this.generateSchedule();
+
+    prepareOptimizationRequest() {
+      // FastAPI 모델에 맞는 요청 데이터 준비
+      this.optimizationData = {
+        grade: this.grade,
+        desired_credits: this.desiredCredits,
+        user_morning: this.getAnswerFor(0),
+        user_late: this.getAnswerFor(1),
+        user_lunch: this.getAnswerFor(2),
+        user_dayoff: this.getAnswerFor(3),
+        user_no_large_gap: this.getAnswerFor(4)
+      };
+
+      console.log('최적화 요청 데이터:', this.optimizationData);
+    },
+
+    getAnswerFor(questionIndex) {
+      return this.answers[questionIndex]?.answer || false;
+    },
+
+    showSchedule(result) {
+      this.apiResult = result;
+      this.processScheduleResult();
       this.currentView = 'schedule';
     },
-    generateSchedule() {
-      // 여기서 답변을 기반으로 스케줄 생성 로직 구현
-      this.scheduleData = this.answers.map(item => {
-        return {
-          question: item.question,
-          answer: item.answer ? 'YES' : 'NO'
-        };
-      });
+
+    processScheduleResult() {
+      // API 결과가 있으면 사용, 없으면 더미 데이터 사용
+      if (this.apiResult && this.apiResult.selected) {
+        // 백엔드 API 응답으로 시간표 항목 생성
+        this.scheduleData = this.apiResult.selected.map(course => {
+          // 시간 파싱 (예: "월9~10, 수11~12" 형식)
+          const timeParts = course.time.split(', ');
+          const scheduleItems = [];
+
+          timeParts.forEach(part => {
+            const day = this.getDayNumber(part.charAt(0));
+            const timeRange = part.substring(1);
+            const [start, end] = timeRange.split('~').map(Number);
+
+            scheduleItems.push({
+              title: course.name,
+              day: day,
+              startHour: start + 8, // 1교시는 9시 (1+8)부터 시작
+              duration: end - start + 1,
+              type: this.getRandomType() // 임시로 랜덤 타입 할당
+            });
+          });
+
+          return scheduleItems;
+        }).flat();
+      } else {
+        // 더미 데이터 사용
+        this.generateDummySchedule();
+      }
     },
-    restartApp() {
-      this.currentView = 'start';
-      this.currentQuestionIndex = 0;
-      this.answers = [];
-      this.scheduleData = [];
+
+    getDayNumber(dayChar) {
+      const days = { '월': 1, '화': 2, '수': 3, '목': 4, '금': 5 };
+      return days[dayChar] || 1;
+    },
+
+    getRandomType() {
+      const types = ['study', 'project', 'exercise', 'hobby', 'social'];
+      return types[Math.floor(Math.random() * types.length)];
+    },
+
+    generateDummySchedule() {
+      // 더미 시간표 데이터 생성
+      this.scheduleData = [
+        { day: 1, startHour: 9, duration: 2, title: '공업수학', type: 'study' },
+        { day: 1, startHour: 13, duration: 2, title: '대학영어', type: 'study' },
+        { day: 2, startHour: 10, duration: 2, title: '일반물리', type: 'study' },
+        { day: 3, startHour: 14, duration: 3, title: '종합설계', type: 'project' },
+        { day: 4, startHour: 9, duration: 1, title: '러닝', type: 'exercise' },
+        { day: 5, startHour: 11, duration: 2, title: 'OR', type: 'hobby' },
+        { day: 5, startHour: 15, duration: 2, title: '알바', type: 'social' }
+      ];
     }
   }
 }
@@ -121,6 +194,4 @@ export default {
   width: 100%;
   min-height: 100vh;
 }
-
-/* 페이지 전환 애니메이션은 이제 style.css에 포함됩니다 */
 </style>

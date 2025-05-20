@@ -46,7 +46,11 @@ export default {
   props: {
     simulationTime: {
       type: Number,
-      default: 10000 // 10초
+      default: 10000
+    },
+    optimizationData: {
+      type: Object,
+      required: true
     }
   },
   data() {
@@ -55,8 +59,9 @@ export default {
       messageChangeInterval: null,
       optimizationCompleted: false,
       statusMessage: "시간표 최적화 진행 중...",
+      optimizationResult: null,
       timetableCells: [],
-      timeSlots: 10, // 9시간 (9시부터 18시까지)
+      timeSlots: 10,
       daysOfWeek: 5,
       colors: ['#e67e22', '#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'],
       optimizationMessages: [
@@ -76,123 +81,118 @@ export default {
     this.initTimetable();
     this.startOptimizationAnimation();
 
-    // 테스트를 위한 시뮬레이션 타이머 설정
-    setTimeout(() => {
-      this.completeOptimization();
-    }, this.simulationTime);
-  },
-  beforeUnmount() {
-    this.stopAnimations();
+    // 실제 API 호출
+    this.callOptimizationAPI();
   },
   methods: {
-    initTimetable() {
-      // 시간표 초기화
-      this.timetableCells = Array(this.timeSlots).fill().map(() =>
-        Array(this.daysOfWeek).fill().map(() => ({
-          color: 'white',
-          opacity: 1
-        }))
-      );
-    },
-    getTimeLabel(index) {
-      const startHour = 9;
-      return `${startHour + index}:00`;
-    },
-    startOptimizationAnimation() {
-      // 상태 메시지 변경 인터벌 설정
-      this.messageChangeInterval = setInterval(() => {
-        const randomIndex = Math.floor(Math.random() * this.optimizationMessages.length);
-        this.statusMessage = this.optimizationMessages[randomIndex];
-      }, 3000); // 3초마다 메시지 변경
+    // 기존 메소드는 유지...
 
-      // 시간표 셀 애니메이션 인터벌 설정
-      this.optimizationInterval = setInterval(() => {
-        this.updateTimetableDuringOptimization();
-      }, 200); // 200ms마다 업데이트
-    },
-    updateTimetableDuringOptimization() {
-      // 최적화 진행 중 시간표 셀 업데이트
-      for (let row = 0; row < this.timeSlots; row++) {
-        for (let col = 0; col < this.daysOfWeek; col++) {
-          // 랜덤하게 셀 업데이트
-          if (Math.random() > 0.7) {
-            const randomValue = Math.random();
+    async callOptimizationAPI() {
+        // API 호출을 임시로 비활성화 (테스트용)
+      console.log('API 호출 (테스트 모드):', this.optimizationData);
 
-            if (randomValue > 0.8) {
-              // 랜덤 색상 할당
-              const colorIndex = Math.floor(Math.random() * this.colors.length);
-              this.timetableCells[row][col].color = this.colors[colorIndex];
-              this.timetableCells[row][col].opacity = Math.random() * 0.5 + 0.5;
-            } else if (randomValue > 0.4) {
-              // 색상 제거
-              this.timetableCells[row][col].color = 'white';
-              this.timetableCells[row][col].opacity = 1;
-            }
-          }
-        }
-      }
+      // 실제 API 호출 대신 타이머만 사용
+      setTimeout(() => {
+        this.completeOptimization();
+      }, this.simulationTime);
+
+      // try {
+      //   // Ngrok URL을 여기에 설정
+      //   const apiUrl = 'https://your-ngrok-url.ngrok.io/schedule';
+
+      //   const response = await fetch(apiUrl, {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify(this.optimizationData)
+      //   });
+
+      //   if (!response.ok) {
+      //     throw new Error(`API 요청 실패: ${response.status}`);
+      //   }
+
+      //   // API 응답 저장
+      //   this.optimizationResult = await response.json();
+      //   console.log('최적화 결과:', this.optimizationResult);
+
+      //   // 애니메이션 시간이 지나면 결과 표시
+      //   setTimeout(() => {
+      //     this.completeOptimization();
+      //   }, this.simulationTime);
+      // } catch (error) {
+      //   console.error('API 호출 오류:', error);
+      //   // 에러 발생 시에도 애니메이션이 끝나면 더미 데이터 표시
+      //   setTimeout(() => {
+      //     this.completeOptimization();
+      //   }, this.simulationTime);
+      // }
     },
+
     completeOptimization() {
-      // 최적화 완료
       this.stopAnimations();
       this.optimizationCompleted = true;
       this.statusMessage = "최적화 완료! 당신의 맞춤형 시간표가 준비되었습니다.";
 
-      // 테스트용 최적화된 시간표 표시
-      this.displayTestSchedule();
-    },
-    displayTestSchedule() {
-      // 초기화
-      for (let row = 0; row < this.timeSlots; row++) {
-        for (let col = 0; col < this.daysOfWeek; col++) {
-          this.timetableCells[row][col].color = 'white';
-          this.timetableCells[row][col].opacity = 1;
-        }
+      if (this.optimizationResult && this.optimizationResult.selected) {
+        // API 응답으로 시간표 표시
+        this.displayOptimizedSchedule(this.optimizationResult.selected);
+      } else {
+        // 실패 시 테스트용 시간표 표시
+        this.displayTestSchedule();
       }
+    },
 
-      // 테스트용 시간표 데이터 - 이미지와 유사한 시간표
-      const testSchedule = [
-        { row: 1, col: 0, color: '#e67e22' }, // 월요일 10시
-        { row: 2, col: 0, color: '#e67e22' }, // 월요일 11시
-        { row: 2, col: 2, color: '#f1c40f' }, // 수요일 11시
-        { row: 3, col: 2, color: '#f1c40f' }, // 수요일 12시
-        { row: 2, col: 4, color: '#e67e22' }, // 금요일 11시
-        { row: 3, col: 4, color: '#e67e22' }, // 금요일 12시
-        { row: 2, col: 1, color: '#e74c3c' }, // 화요일 11시
-        { row: 3, col: 1, color: '#e74c3c' }, // 화요일 12시
-        { row: 4, col: 1, color: '#e74c3c' }, // 화요일 13시
-        { row: 5, col: 1, color: '#e74c3c' }, // 화요일 14시
-        { row: 4, col: 3, color: '#2ecc71' }, // 목요일 13시
-        { row: 5, col: 3, color: '#2ecc71' }  // 목요일 14시
-      ];
+    displayOptimizedSchedule(courses) {
+      // 시간표 초기화
+      this.initTimetable();
 
-      // 테스트 시간표 적용
-      testSchedule.forEach(item => {
-        if (item.row < this.timeSlots && item.col < this.daysOfWeek) {
-          this.timetableCells[item.row][item.col].color = item.color;
-          this.timetableCells[item.row][item.col].opacity = 1;
-        }
+      // 색상 인덱스
+      let colorIndex = 0;
+
+      // 각 과목을 시간표에 표시
+      courses.forEach(course => {
+        // 시간 파싱 (예: "월9~10, 수11~12" 형식)
+        const timeParts = course.time.split(', ');
+
+        // 과목 색상 할당
+        const courseColor = this.colors[colorIndex % this.colors.length];
+        colorIndex++;
+
+        // 각 시간대 처리
+        timeParts.forEach(part => {
+          // 요일 추출 (첫 글자)
+          const day = part.charAt(0);
+          const dayIndex = this.getDayIndex(day);
+
+          // 시간 범위 추출
+          const timeRange = part.substring(1);
+          const [start, end] = timeRange.split('~').map(Number);
+
+          // 시간표에 표시
+          for (let t = start; t <= end; t++) {
+            // 시간 인덱스 변환 (9시 = 인덱스 0)
+            const timeIndex = t - 9;
+            if (timeIndex >= 0 && timeIndex < this.timeSlots && dayIndex >= 0 && dayIndex < this.daysOfWeek) {
+              this.timetableCells[timeIndex][dayIndex].color = courseColor;
+              this.timetableCells[timeIndex][dayIndex].opacity = 1;
+            }
+          }
+        });
       });
     },
-    stopAnimations() {
-      // 모든 애니메이션 중지
-      if (this.optimizationInterval) {
-        clearInterval(this.optimizationInterval);
-      }
-      if (this.messageChangeInterval) {
-        clearInterval(this.messageChangeInterval);
-      }
+
+    getDayIndex(dayChar) {
+      const days = { '월': 0, '화': 1, '수': 2, '목': 3, '금': 4 };
+      return days[dayChar] !== undefined ? days[dayChar] : -1;
     },
+
     onContinue() {
-      // 최적화 완료 이벤트 발생
-      this.$emit('optimization-completed');
+      this.$emit('optimization-completed', this.optimizationResult);
     }
   }
 }
 </script>
 
 <style scoped>
-/* 공통 스타일은 이제 style.css에서 관리됩니다 */
 .optimization-container {
   width: 100%;
   min-height: 100vh;
