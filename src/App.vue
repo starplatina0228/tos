@@ -28,7 +28,15 @@
       <div v-else-if="currentView === 'optimization'" key="optimization">
         <optimization-component
           :simulation-time="10000"
-          :optimization-data="optimizationData"
+          :optimization-data="{
+            grade: grade,
+            desired_credits: desiredCredits,
+            user_morning: getAnswerFor(0),
+            user_late: getAnswerFor(1),
+            user_lunch: getAnswerFor(2),
+            user_dayoff: getAnswerFor(3),
+            user_no_large_gap: getAnswerFor(4)
+          }"
           @optimization-completed="showSchedule"
         />
       </div>
@@ -184,6 +192,23 @@ export default {
         { day: 5, startHour: 11, duration: 2, title: 'OR', type: 'hobby' },
         { day: 5, startHour: 15, duration: 2, title: '알바', type: 'social' }
       ];
+    },
+
+    restartApp() {
+      // 모든 상태 초기화
+      this.currentView = 'start';  // 시작 화면으로 돌아가기
+      this.currentQuestionIndex = 0;
+      this.grade = null;
+      this.desiredCredits = 15;
+      this.answers = [];
+      this.scheduleData = [];
+      this.optimizationData = null;
+      this.apiResult = null;
+
+      // 페이지 맨 위로 스크롤
+      window.scrollTo(0, 0);
+
+      console.log('앱이 초기화되었습니다.');
     }
   }
 }
