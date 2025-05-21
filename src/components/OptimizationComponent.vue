@@ -26,7 +26,12 @@
                 backgroundColor: cell.color,
                 opacity: cell.opacity
               }"
-            ></div>
+            >
+              <div v-if="cell.title" class="cell-content">
+                <div class="cell-title">{{ cell.title }}</div>
+                <div v-if="cell.location" class="cell-location">{{ cell.location }}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -96,8 +101,10 @@ export default {
     this.stopAnimations();
   },
   methods: {
+    // 초기화 함수
     initTimetable() {
-      // 시간표 초기화
+      // 9:00부터 18:00까지 30분 단위로 표시 (총 18행)
+      this.timeSlots = 18; // 9시간 * 2 (30분 단위)
       this.timetableCells = Array(this.timeSlots).fill().map(() =>
         Array(this.daysOfWeek).fill().map(() => ({
           color: 'white',
@@ -105,10 +112,15 @@ export default {
         }))
       );
     },
+
+    // 시간 레이블 생성 함수 수정
     getTimeLabel(index) {
-      const startHour = 9;
-      return `${startHour + index}:00`;
+      // 30분 단위 레이블 생성 (0번 행 = 9:00, 1번 행 = 9:30, 2번 행 = 10:00...)
+      const hour = Math.floor(index / 2) + 9;
+      const minute = (index % 2) * 30;
+      return `${hour}:${minute === 0 ? '00' : minute}`;
     },
+
     startOptimizationAnimation() {
       // 상태 메시지 변경 인터벌 설정
       this.messageChangeInterval = setInterval(() => {
@@ -121,6 +133,7 @@ export default {
         this.updateTimetableDuringOptimization();
       }, 200); // 200ms마다 업데이트
     },
+
     updateTimetableDuringOptimization() {
       // 최적화 진행 중 시간표 셀 업데이트
       for (let row = 0; row < this.timeSlots; row++) {
@@ -146,7 +159,7 @@ export default {
     async callOptimizationAPI() {
       try {
         // Ngrok URL을 여기에 설정
-        const apiUrl = 'https://your-ngrok-url.ngrok.io/schedule';
+        const apiUrl = 'https://1c5e-1-247-118-109.ngrok-free.app/api/schedule';
 
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -168,11 +181,125 @@ export default {
         }, this.simulationTime);
       } catch (error) {
         console.error('API 호출 오류:', error);
-        // 에러 발생 시에도 애니메이션이 끝나면 더미 데이터 표시
+
+        // 테스트용 데이터 (실제 API가 실패하는 경우)
+        this.optimizationResult = this.getTestOptimizationData();
+
+        // 애니메이션이 끝나면 테스트 데이터 표시
         setTimeout(() => {
           this.completeOptimization();
         }, this.simulationTime);
       }
+    },
+
+    getTestOptimizationData() {
+      // 실제 백엔드 최적화 응답 형식에 맞는 테스트 데이터
+      return {
+        "status": "OPTIMAL",
+        "selected": [
+          {
+            "subjId": "534170",
+            "name": "마케팅공학",
+            "credits": 3,
+            "schedule_info": [
+              {
+                "day": "월",
+                "start": 1,
+                "end": 3,
+                "location": "A동 101호"
+              }
+            ]
+          },
+          {
+            "subjId": "397260",
+            "name": "재무관리",
+            "credits": 3,
+            "schedule_info": [
+              {
+                "day": "화",
+                "start": 1,
+                "end": 2,
+                "location": "B동 203호"
+              },
+              {
+                "day": "목",
+                "start": 1,
+                "end": 2,
+                "location": "B동 203호"
+              }
+            ]
+          },
+          {
+            "subjId": "515680",
+            "name": "빅데이터분석",
+            "credits": 3,
+            "schedule_info": [
+              {
+                "day": "화",
+                "start": 4,
+                "end": 5,
+                "location": "공대 305호"
+              },
+              {
+                "day": "목",
+                "start": 4,
+                "end": 5,
+                "location": "공대 305호"
+              }
+            ]
+          },
+          {
+            "subjId": "356090",
+            "name": "생산관리",
+            "credits": 3,
+            "schedule_info": [
+              {
+                "day": "수",
+                "start": 4,
+                "end": 6,
+                "location": "경영관 203호"
+              }
+            ]
+          },
+          {
+            "subjId": "371250",
+            "name": "실험계획법",
+            "credits": 3,
+            "schedule_info": [
+              {
+                "day": "수",
+                "start": 1,
+                "end": 3,
+                "location": "공학관 402호"
+              }
+            ]
+          },
+          {
+            "subjId": "405580",
+            "name": "제조공학",
+            "credits": 3,
+            "schedule_info": [
+              {
+                "day": "금",
+                "start": 3,
+                "end": 5,
+                "location": "공학관 301호"
+              }
+            ]
+          }
+        ],
+        "total_credits": 18,
+        "objective_value": 2160.0039960308654,
+        "breakdown": {
+          "priority": 2600,
+          "dev": 0,
+          "mor": -300,
+          "late": -90,
+          "lunch": 0,
+          "freeday": -50,
+          "longgap": 0
+        }
+      };
     },
 
     completeOptimization() {
@@ -190,38 +317,32 @@ export default {
     },
 
     displayOptimizedSchedule(courses) {
-      // 시간표 초기화
       this.initTimetable();
-
-      // 색상 인덱스
       let colorIndex = 0;
 
-      // 각 과목을 시간표에 표시
       courses.forEach(course => {
-        // 시간 파싱 (예: "월9~10, 수11~12" 형식)
-        const timeParts = course.time.split(', ');
-
-        // 과목 색상 할당
         const courseColor = this.colors[colorIndex % this.colors.length];
         colorIndex++;
 
-        // 각 시간대 처리
-        timeParts.forEach(part => {
-          // 요일 추출 (첫 글자)
-          const day = part.charAt(0);
+        course.schedule_info.forEach(schedule => {
+          const day = schedule.day;
+          const start = schedule.start;
+          const end = schedule.end;
+          const location = schedule.location || '';
           const dayIndex = this.getDayIndex(day);
 
-          // 시간 범위 추출
-          const timeRange = part.substring(1);
-          const [start, end] = timeRange.split('~').map(Number);
+          // 교시를 30분 단위 행으로 변환
+          // 예: 1교시(9:00) -> 행 0, 2교시(9:30) -> 행 1, 3교시(10:00) -> 행 2...
+          const startRow = (start - 1);
+          const endRow = (end - 1);
 
-          // 시간표에 표시
-          for (let t = start; t <= end; t++) {
-            // 시간 인덱스 변환 (9시 = 인덱스 0)
-            const timeIndex = t - 9;
-            if (timeIndex >= 0 && timeIndex < this.timeSlots && dayIndex >= 0 && dayIndex < this.daysOfWeek) {
-              this.timetableCells[timeIndex][dayIndex].color = courseColor;
-              this.timetableCells[timeIndex][dayIndex].opacity = 1;
+          // 각 30분 칸에 과목 정보 표시
+          for (let t = startRow; t <= endRow; t++) {
+            if (t >= 0 && t < this.timeSlots && dayIndex >= 0 && dayIndex < this.daysOfWeek) {
+              this.timetableCells[t][dayIndex].color = courseColor;
+              this.timetableCells[t][dayIndex].opacity = 1;
+              this.timetableCells[t][dayIndex].title = course.name;
+              this.timetableCells[t][dayIndex].location = location;
             }
           }
         });
@@ -232,6 +353,7 @@ export default {
       const days = { '월': 0, '화': 1, '수': 2, '목': 3, '금': 4 };
       return days[dayChar] !== undefined ? days[dayChar] : -1;
     },
+
     displayTestSchedule() {
       // 초기화
       for (let row = 0; row < this.timeSlots; row++) {
@@ -422,5 +544,29 @@ export default {
   .status-message.completed {
     font-size: 1.1rem;
   }
+}
+
+.cell-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 2px;
+  text-align: center;
+}
+
+.cell-title {
+  font-weight: bold;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-location {
+  font-size: 0.7rem;
+  opacity: 0.8;
 }
 </style>

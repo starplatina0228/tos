@@ -18,34 +18,76 @@
           </div>
 
           <div class="timetable-grid">
-            <!-- 시간대 표시 -->
-            <div class="time-column">
-              <div class="time">9:00</div>
-              <div class="time">10:00</div>
-              <div class="time">11:00</div>
-              <div class="time">12:00</div>
-              <div class="time">13:00</div>
-              <div class="time">14:00</div>
-              <div class="time">15:00</div>
-              <div class="time">16:00</div>
-              <div class="time">17:00</div>
-            </div>
+            <div class="grid-container">
+              <!-- 시간대 표시 -->
+              <div class="time-column">
+                <div class="time">9:00</div>
+                <div class="time">9:30</div>
+                <div class="time">10:00</div>
+                <div class="time">10:30</div>
+                <div class="time">11:00</div>
+                <div class="time">11:30</div>
+                <div class="time">12:00</div>
+                <div class="time">12:30</div>
+                <div class="time">13:00</div>
+                <div class="time">13:30</div>
+                <div class="time">14:00</div>
+                <div class="time">14:30</div>
+                <div class="time">15:00</div>
+                <div class="time">15:30</div>
+                <div class="time">16:00</div>
+                <div class="time">16:30</div>
+                <div class="time">17:00</div>
+                <div class="time">17:30</div>
+              </div>
 
-            <!-- 실제 시간표 내용 -->
-            <div class="schedule-grid">
-              <template v-for="(item, index) in scheduleItems" :key="index">
-                <div
-                  class="schedule-item"
-                  :class="item.type"
-                  :style="{
-                    gridColumn: `${item.day} / span 1`,
-                    gridRow: `${item.startHour - 8} / span ${item.duration}`
-                  }"
-                >
-                  <span class="item-title">{{ item.title }}</span>
-                </div>
-              </template>
+              <!-- 실제 시간표 내용 -->
+              <div class="schedule-grid">
+                <!-- 배경 격자 생성 -->
+                <div v-for="i in 18" :key="`grid-row-${i}`" class="grid-row-divider" :style="{top: `${i * 30}px`}"></div>
+
+                <!-- 스케줄 아이템 -->
+                <template v-for="(item, index) in scheduleItems" :key="index">
+                  <div
+                    class="schedule-item"
+                    :class="item.type"
+                    :style="{
+                      gridColumn: `${item.day} / span 1`,
+                      gridRow: `${calculateGridRow(item.startHour, item.startMinute)} / span ${calculateGridSpan(item.duration)}`
+                    }"
+                  >
+                    <span class="item-title">{{ item.title }}</span>
+                    <span v-if="item.location" class="item-location">{{ item.location }}</span>
+                  </div>
+                </template>
+              </div>
             </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 최적화 정보 표시 섹션 -->
+      <div class="optimization-info" v-if="optimizationSummary">
+        <h2 class="info-title">최적화 정보</h2>
+        <div class="info-grid">
+          <div class="info-card">
+            <h3>과목 정보</h3>
+            <p><strong>총 학점:</strong> {{ optimizationSummary.totalCredits }}학점</p>
+            <p><strong>총 과목 수:</strong> {{ optimizationSummary.totalCourses }}개</p>
+          </div>
+          <div class="info-card">
+            <h3>최적화 점수</h3>
+            <p><strong>목적 함수 값:</strong> {{ Math.round(optimizationSummary.objectiveValue * 100) / 100 }}</p>
+            <p><strong>Priority 점수:</strong> {{ optimizationSummary.breakdown.priority }}</p>
+          </div>
+          <div class="info-card">
+            <h3>선호도 반영</h3>
+            <p><strong>아침 수업:</strong> {{ optimizationSummary.breakdown.mor }}</p>
+            <p><strong>저녁 수업:</strong> {{ optimizationSummary.breakdown.late }}</p>
+            <p><strong>점심 시간대:</strong> {{ optimizationSummary.breakdown.lunch }}</p>
+            <p><strong>공강일:</strong> {{ optimizationSummary.breakdown.freeday }}</p>
+            <p><strong>긴 공강:</strong> {{ optimizationSummary.breakdown.longgap }}</p>
           </div>
         </div>
       </div>
@@ -109,29 +151,34 @@ export default {
     scheduleData: {
       type: Array,
       default: () => []
+    },
+    apiResult: {
+      type: Object,
+      default: null
     }
   },
   data() {
     return {
-      // 피드백 관련 데이터 추가
+      // 피드백 관련 데이터
       rating: 0,
       feedbackText: '',
-      feedbackSubmitted: false
+      feedbackSubmitted: false,
+      optimizationSummary: null
     }
   },
   computed: {
     scheduleItems() {
-      // props로 받은 데이터 사용
-      return this.scheduleData.length > 0 ? this.scheduleData : [
-        // 기본 데이터 (props가 비어있을 경우)
-        { day: 1, startHour: 9, duration: 2, title: '공업수학', type: 'study' },
-        { day: 1, startHour: 13, duration: 2, title: '대학영어', type: 'study' },
-        { day: 2, startHour: 10, duration: 2, title: '일반물리', type: 'study' },
-        { day: 3, startHour: 14, duration: 3, title: '종합설계', type: 'project' },
-        { day: 4, startHour: 9, duration: 1, title: '러닝', type: 'exercise' },
-        { day: 5, startHour: 11, duration: 2, title: 'OR', type: 'hobby' },
-        { day: 5, startHour: 15, duration: 2, title: '알바', type: 'social' }
-      ];
+      if (this.scheduleData.length > 0) {
+        return this.scheduleData;
+      } else {
+        return this.generateDummySchedule();
+      }
+    }
+  },
+  created() {
+    // 최적화 결과 요약 정보 생성
+    if (this.$props.scheduleData && this.$props.apiResult) {
+      this.processOptimizationSummary(this.$props.apiResult);
     }
   },
   methods: {
@@ -142,12 +189,11 @@ export default {
       // 저장 로직 구현
       alert('시간표가 저장되었습니다!');
     },
-    // 피드백 관련 메소드 추가
+    // 피드백 관련 메소드 구현해야 함
     setRating(star) {
       this.rating = star;
     },
     submitFeedback() {
-      // 여기서 실제로는 서버에 피드백을 전송할 수 있습니다
       console.log('피드백 제출:', {
         rating: this.rating,
         feedback: this.feedbackText
@@ -163,12 +209,59 @@ export default {
           successEl.scrollIntoView({ behavior: 'smooth' });
         }
       }, 100);
+    },
+    // 최적화 정보 처리
+    processOptimizationSummary(result) {
+      if (result && result.selected) {
+        this.optimizationSummary = {
+          totalCredits: result.total_credits || 0,
+          totalCourses: result.selected.length || 0,
+          objectiveValue: result.objective_value || 0,
+          breakdown: result.breakdown || {
+            priority: 0,
+            dev: 0,
+            mor: 0,
+            late: 0,
+            lunch: 0,
+            freeday: 0,
+            longgap: 0
+          }
+        };
+      }
+    },
+    // 더미 시간표 생성 함수
+    generateDummySchedule() {
+      return [
+        { day: 1, startHour: 9, duration: 2, title: '공업수학', type: 'study' },
+        { day: 1, startHour: 13, duration: 2, title: '대학영어', type: 'study' },
+        { day: 2, startHour: 10, duration: 2, title: '일반물리', type: 'study' },
+        { day: 3, startHour: 14, duration: 3, title: '종합설계', type: 'project' },
+        { day: 4, startHour: 9, duration: 1, title: '러닝', type: 'exercise' },
+        { day: 5, startHour: 11, duration: 2, title: 'OR', type: 'hobby' },
+        { day: 5, startHour: 15, duration: 2, title: '알바', type: 'social' }
+      ];
+    },
+    // 시간을 그리드 행 번호로 변환
+    calculateGridRow(hour, minute) {
+      // 9시부터 시작, 30분마다 1행
+      const hourOffset = (hour - 9) * 2;
+      const minuteOffset = minute === 30 ? 1 : 0;
+      return hourOffset + minuteOffset + 1; // 1-based grid rows
+    },
+
+    // 시간 단위 기간을 그리드 행 범위로 변환
+    calculateGridSpan(durationHours) {
+      // 시간을 행 수로 변환 (1시간 = 2행)
+      return durationHours * 2;
     }
   }
 }
 </script>
 
 <style scoped>
+/* ==========================================================================
+   1. 기본 컨테이너 및 카드 레이아웃
+   ========================================================================== */
 .schedule-container {
   width: 100%;
   min-height: 100vh;
@@ -189,6 +282,9 @@ export default {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
+/* ==========================================================================
+   2. 헤더 스타일
+   ========================================================================== */
 .schedule-header {
   padding: 30px;
   text-align: center;
@@ -208,6 +304,9 @@ export default {
   margin: 0;
 }
 
+/* ==========================================================================
+   3. 시간표 구조 및 그리드
+   ========================================================================== */
 .schedule-content {
   padding: 30px;
 }
@@ -230,55 +329,112 @@ export default {
   padding: 10px;
 }
 
-.timetable-grid {
+.grid-container {
   display: flex;
-  position: relative;
-  margin-top: 15px;
+  width: 100%;
+  position: relative; /* 자식 요소의 절대 위치 기준 */
 }
 
 .time-column {
   width: 60px;
   flex-shrink: 0;
+  z-index: 2; /* 그리드보다 위에 표시 */
+  background-color: #f8f9fa;
+  border-right: 1px solid #e9ecef;
 }
 
 .time {
-  height: 60px;
+  height: 30px; /* 30분 단위 행 높이 */
   display: flex;
-  align-items: start;
+  align-items: center; /* 중앙 정렬로 변경 */
   justify-content: center;
   color: var(--gray-color);
-  font-size: 14px;
+  font-size: 12px;
+  border-bottom: 1px solid #e9ecef; /* 구분선 추가 */
+  box-sizing: border-box;
 }
 
+/* 스케줄 그리드 개선 */
 .schedule-grid {
   flex-grow: 1;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(9, 60px);
-  gap: 1px;
-  background-color: #f8f9fa;
+  grid-template-rows: repeat(18, 30px); /* 30분 단위, 9:00-17:30 */
+  position: relative;
+  min-height: 540px; /* 18행 * 30px */
+  border: 1px solid #e9ecef;
+  border-left: none;
 }
 
+/* 그리드 행 구분선 */
+.grid-row-divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #e9ecef;
+  z-index: 1;
+}
+
+/* 스케줄 아이템 스타일 개선 */
 .schedule-item {
   background-color: #e2e8f0;
   border-radius: 6px;
-  padding: 8px;
+  padding: 4px;
   margin: 2px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   text-align: center;
   color: white;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 5; /* 배경 격자보다 위에 표시 */
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.schedule-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10; /* 호버 시 다른 아이템보다 위에 표시 */
+}
+
+/* ==========================================================================
+   4. 시간표 항목 및 유형별 스타일
+   ========================================================================== */
+.schedule-item {
+  background-color: #e2e8f0;
+  border-radius: 6px;
+  padding: 4px;
+  margin: 1px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  color: white;
+  overflow: hidden;
 }
 
 .item-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: bold;
+  margin-bottom: 2px;
 }
 
+.item-location {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* 스케줄 항목 유형별 색상 */
 .study {
   background-color: var(--primary-color);
 }
@@ -299,6 +455,9 @@ export default {
   background-color: #f56565;
 }
 
+/* ==========================================================================
+   5. 액션 버튼
+   ========================================================================== */
 .action-buttons {
   display: flex;
   justify-content: center;
@@ -336,22 +495,13 @@ export default {
   box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
 }
 
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .schedule-card {
-    max-width: 95%;
-  }
-
-  .title {
-    font-size: 24px;
-  }
-
-  .schedule-item {
-    font-size: 12px;
-    padding: 4px;
-  }
+.action-buttons.with-margin {
+  margin-top: 0;
 }
-/* 피드백 섹션 스타일 */
+
+/* ==========================================================================
+   6. 피드백 섹션
+   ========================================================================== */
 .feedback-section {
   padding: 30px;
   border-top: 1px solid #e9ecef;
@@ -368,6 +518,7 @@ export default {
   margin-bottom: 20px;
 }
 
+/* 별점 평가 */
 .star-rating {
   display: flex;
   align-items: center;
@@ -395,6 +546,7 @@ export default {
   color: #fbbf24;
 }
 
+/* 피드백 폼 */
 .feedback-form {
   margin-bottom: 20px;
 }
@@ -423,6 +575,7 @@ export default {
   transform: translateY(-2px);
 }
 
+/* 피드백 성공 메시지 */
 .feedback-success {
   padding: 30px;
   text-align: center;
@@ -452,7 +605,66 @@ export default {
   color: var(--gray-color);
 }
 
-.action-buttons.with-margin {
-  margin-top: 0;
+/* ==========================================================================
+   7. 최적화 정보 섹션
+   ========================================================================== */
+.optimization-info {
+  padding: 30px;
+  border-top: 1px solid #e9ecef;
+}
+
+.info-title {
+  color: var(--dark-color);
+  font-size: 22px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.info-card {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.info-card h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.info-card p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: var(--gray-color);
+}
+
+.info-card strong {
+  color: var(--dark-color);
+}
+
+/* ==========================================================================
+   8. 반응형 디자인 (미디어 쿼리)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .schedule-card {
+    max-width: 95%;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .schedule-item {
+    font-size: 12px;
+    padding: 4px;
+  }
 }
 </style>

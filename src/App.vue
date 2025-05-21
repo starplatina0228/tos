@@ -141,34 +141,122 @@ export default {
     },
 
     processScheduleResult() {
-      // API 결과가 있으면 사용, 없으면 더미 데이터 사용
-      if (this.apiResult && this.apiResult.selected) {
-        // 백엔드 API 응답으로 시간표 항목 생성
-        this.scheduleData = this.apiResult.selected.map(course => {
-          // 시간 파싱 (예: "월9~10, 수11~12" 형식)
-          const timeParts = course.time.split(', ');
-          const scheduleItems = [];
-
-          timeParts.forEach(part => {
-            const day = this.getDayNumber(part.charAt(0));
-            const timeRange = part.substring(1);
-            const [start, end] = timeRange.split('~').map(Number);
-
-            scheduleItems.push({
-              title: course.name,
-              day: day,
-              startHour: start + 8, // 1교시는 9시 (1+8)부터 시작
-              duration: end - start + 1,
-              type: this.getRandomType() // 임시로 랜덤 타입 할당
-            });
-          });
-
-          return scheduleItems;
-        }).flat();
-      } else {
-        // 더미 데이터 사용
-        this.generateDummySchedule();
+      if (this.apiResult) {
+        // 최적화 컴포넌트에서 이미 처리된 데이터가 있는 경우
+        if (this.apiResult.processedScheduleData) {
+          this.scheduleData = this.apiResult.processedScheduleData;
+          return;
+        }
+        // 원래 API 응답 형식에서 데이터 처리
+        else if (this.apiResult.selected) {
+          // 서버에서 받은 데이터 구조에서 시간표 항목 생성
+          this.scheduleData = this.convertApiResultToScheduleData(this.apiResult.selected);
+          return;
+        }
       }
+
+      // 유효한 결과가 없는 경우 더미 데이터 생성
+      this.generateDummySchedule();
+    },
+
+    convertApiResultToScheduleData(selectedCourses) {
+      // 과목 타입 정의 (색상 구분용)
+      const courseTypes = ['study', 'project', 'exercise', 'hobby', 'social'];
+      let scheduleItems = [];
+
+      // 각 과목을 처리
+      selectedCourses.forEach((course, index) => {
+        // 과목 유형 지정 (순환)
+        const courseType = courseTypes[index % courseTypes.length];
+
+        // 각 수업 일정 처리
+        course.schedule_info.forEach(schedule => {
+          // 교시를 실제 시간으로 변환
+          const startTime = this.convertPeriodToTime(schedule.start);
+
+          // 교시 기간을 시간 단위로 변환
+          const periodCount = schedule.end - schedule.start + 1;
+          const durationHours = periodCount / 2; // 2교시 = 1시간
+
+          scheduleItems.push({
+            title: course.name,
+            day: this.getDayNumber(schedule.day),
+            startHour: startTime.hour,
+            startMinute: startTime.minute,
+            duration: durationHours,
+            type: courseType,
+            location: schedule.location || ''
+          });
+        });
+      });
+
+      return scheduleItems;
+    },
+
+    // 새로운 함수: 교시를 실제 시간으로 매핑
+    // 교시를 시간으로 변환하는 함수
+    mapPeriodToTime(period) {
+      // 1교시 = 9:00, 2교시 = 9:30, 3교시 = 10:00 등으로 변환
+      const hour = Math.floor((period - 1) / 2) + 9;
+      const minute = ((period - 1) % 2) * 30;
+      return { hour, minute };
+    },
+
+    // 교시를 시간으로 변환하는 함수
+    convertPeriodToTime(period) {
+      // 1교시 = 9:00, 2교시 = 9:30...
+      const baseHour = 9;
+      const hour = Math.floor((period - 1) / 2) + baseHour;
+      const minute = ((period - 1) % 2) * 30;
+
+      return { hour, minute };
+    },
+
+    // 교시(시간)를 행/열 위치로 변환하는 함수
+    mapScheduleToCellPosition(day, startPeriod, endPeriod) {
+      // 요일 -> 열 번호 변환
+      const column = this.getDayNumber(day);
+
+      // 시작 교시 -> 행 번호 변환 (1교시 = 9:00 = 행 1)
+      const startRow = (startPeriod - 1) * 2 + 1;
+
+      // 교시 기간 -> 행 수 변환 (30분 단위 교시)
+      const periods = endPeriod - startPeriod + 1;
+      const rowSpan = periods;
+
+      return {
+        column: column,
+        row: startRow,
+        rowSpan: rowSpan
+      };
+    },
+
+    // 교시 범위를 그리드에 표시하기 위한 정보로 변환
+    calculateSchedulePosition(start, end) {
+      // 시작 시간 (시, 분)
+      const startTime = this.mapPeriodToTime(start);
+
+      // 30분 단위 교시 개수로 duration 계산
+      const periodCount = end - start + 1;
+
+      // 그리드 행 계산 (9시가 1행)
+      const startRow = Math.floor((startTime.hour - 9) * 2) + (startTime.minute === 30 ? 1 : 0) + 1;
+
+      // duration은 30분 단위 개수를 시간 단위(행)로 변환
+      const durationInRows = periodCount / 2; // 30분 교시 2개 = 1시간(1행)
+
+      return {
+        startRow: startRow,
+        duration: durationInRows
+      };
+    },
+
+    getCourseType(courseName) {
+      // 과목명에 따라 다른 유형 반환 (다른 색상으로 표시하기 위함)
+      const types = ['study', 'project', 'exercise', 'hobby', 'social'];
+      // 간단한 해시 함수로 과목명에 따라 다른 유형 할당
+      const hash = courseName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return types[hash % types.length];
     },
 
     getDayNumber(dayChar) {
@@ -184,13 +272,14 @@ export default {
     generateDummySchedule() {
       // 더미 시간표 데이터 생성
       this.scheduleData = [
-        { day: 1, startHour: 9, duration: 2, title: '공업수학', type: 'study' },
-        { day: 1, startHour: 13, duration: 2, title: '대학영어', type: 'study' },
-        { day: 2, startHour: 10, duration: 2, title: '일반물리', type: 'study' },
-        { day: 3, startHour: 14, duration: 3, title: '종합설계', type: 'project' },
-        { day: 4, startHour: 9, duration: 1, title: '러닝', type: 'exercise' },
-        { day: 5, startHour: 11, duration: 2, title: 'OR', type: 'hobby' },
-        { day: 5, startHour: 15, duration: 2, title: '알바', type: 'social' }
+        { day: 1, startHour: 9, duration: 3, title: '마케팅공학', type: 'study', location: 'A동 101호' },
+        { day: 2, startHour: 9, duration: 2, title: '재무관리', type: 'project', location: 'B동 203호' },
+        { day: 2, startHour: 12, duration: 2, title: '빅데이터분석', type: 'exercise', location: '공대 305호' },
+        { day: 3, startHour: 9, duration: 3, title: '실험계획법', type: 'hobby', location: '공학관 402호' },
+        { day: 3, startHour: 12, duration: 3, title: '생산관리', type: 'social', location: '경영관 203호' },
+        { day: 4, startHour: 9, duration: 2, title: '재무관리', type: 'project', location: 'B동 203호' },
+        { day: 4, startHour: 12, duration: 2, title: '빅데이터분석', type: 'exercise', location: '공대 305호' },
+        { day: 5, startHour: 11, duration: 3, title: '제조공학', type: 'study', location: '공학관 301호' }
       ];
     },
 
