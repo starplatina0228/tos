@@ -97,31 +97,45 @@
         <h2 class="feedback-title">시간표 피드백</h2>
         <p class="feedback-description">생성된 시간표에 대한 의견을 알려주세요!</p>
 
-        <div class="star-rating">
-          <span class="rating-label">만족도:</span>
-          <div class="stars">
-            <span
-              v-for="star in 5"
-              :key="star"
-              class="star"
-              :class="{ 'active': star <= rating }"
-              @click="setRating(star)"
-            >★</span>
+        <div class="rating-container">
+          <div class="star-rating">
+            <span class="rating-label">만족도:</span>
+            <div class="stars">
+              <span
+                v-for="star in 5"
+                :key="star"
+                class="star"
+                :class="{ 'active': star <= rating }"
+                @click="setRating(star)"
+              >★</span>
+            </div>
           </div>
         </div>
 
+        <!-- 피드백 폼 부분 -->
         <div class="feedback-form">
           <textarea
             v-model="feedbackText"
             class="feedback-input"
             placeholder="이 시간표에 대한 의견을 자유롭게 작성해주세요..."
             rows="4"
+            :disabled="isSubmitting"
           ></textarea>
 
-          <button class="action-button submit-button" @click="submitFeedback">
-            피드백 제출
+          <div v-if="feedbackError" class="feedback-error">
+            {{ feedbackError }}
+          </div>
+
+          <button
+            class="submit-button"
+            @click="submitFeedback"
+            :disabled="isSubmitting"
+          >
+            <span v-if="isSubmitting">제출 중...</span>
+            <span v-else>피드백 제출</span>
           </button>
         </div>
+
       </div>
 
       <!-- 피드백 제출 성공 메시지 -->
@@ -145,6 +159,8 @@
 </template>
 
 <script>
+import { API_CONFIG } from '@/config/api';
+
 export default {
   name: 'ScheduleComponent',
   props: {
@@ -155,6 +171,19 @@ export default {
     apiResult: {
       type: Object,
       default: null
+    },
+    userPreferences: {
+      type: Object,
+      default: () => ({
+        grade: null,
+        desired_credits: null,
+        user_morning: false,
+        user_late: false,
+        user_lunch: false,
+        user_dayoff: false,
+        user_no_large_gap: false,
+        excluded_courses: []
+      })
     }
   },
   data() {
@@ -163,7 +192,9 @@ export default {
       rating: 0,
       feedbackText: '',
       feedbackSubmitted: false,
-      optimizationSummary: null
+      optimizationSummary: null,
+      isSubmitting: false,
+      feedbackError: null
     }
   },
   computed: {
@@ -185,31 +216,79 @@ export default {
     onRestart() {
       this.$emit('restart');
     },
+
     onSave() {
       // 저장 로직 구현
       alert('시간표가 저장되었습니다!');
     },
+
     // 피드백 관련 메소드 구현해야 함
     setRating(star) {
       this.rating = star;
     },
-    submitFeedback() {
-      console.log('피드백 제출:', {
-        rating: this.rating,
-        feedback: this.feedbackText
-      });
 
-      // 피드백 제출 상태로 변경
-      this.feedbackSubmitted = true;
+    async submitFeedback() {
 
-      // 제출 완료 메시지로 스크롤
-      setTimeout(() => {
-        const successEl = document.querySelector('.feedback-success');
-        if (successEl) {
-          successEl.scrollIntoView({ behavior: 'smooth' });
+      try {
+        // 로딩 상태 시작
+        this.isSubmitting = true;
+        this.feedbackError = null;
+
+        // 유효성 검사
+        if (this.rating === 0) {
+          this.feedbackError = "별점을 선택해주세요.";
+          return;
         }
-      }, 100);
+
+        // 피드백 데이터 준비
+        const feedbackData = {
+          rating: this.rating,
+          comment: this.feedbackText || "",
+          schedule: this.scheduleData || [],
+          // 부모 컴포넌트에서 전달받은 사용자 설정 정보 사용
+          preferences: this.userPreferences
+        };
+
+        console.log('피드백 제출 데이터:', feedbackData);
+
+        // API URL 설정
+        const apiUrl = API_CONFIG.getFullUrl(API_CONFIG.endpoints.FEEDBACK);
+
+        // API 호출
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(feedbackData)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('서버 오류 응답:', errorData);
+          throw new Error(`서버 응답 오류: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('피드백 제출 결과:', result);
+
+        // 피드백 제출 상태로 변경
+        this.feedbackSubmitted = true;
+
+        // 제출 완료 메시지로 스크롤
+        setTimeout(() => {
+          const successEl = document.querySelector('.feedback-success');
+          if (successEl) {
+            successEl.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+
+      } catch (error) {
+        console.error('피드백 제출 오류:', error);
+        this.feedbackError = "피드백 제출 중 오류가 발생했습니다. 나중에 다시 시도해주세요.";
+      } finally {
+        this.isSubmitting = false;
+      }
     },
+
     // 최적화 정보 처리
     processOptimizationSummary(result) {
       if (result && result.selected) {
@@ -229,6 +308,7 @@ export default {
         };
       }
     },
+
     // 더미 시간표 생성 함수
     generateDummySchedule() {
       return [
@@ -241,6 +321,7 @@ export default {
         { day: 5, startHour: 15, duration: 2, title: '알바', type: 'social' }
       ];
     },
+
     // 시간을 그리드 행 번호로 변환
     calculateGridRow(hour, minute) {
       // 9시부터 시작, 30분마다 1행
@@ -511,21 +592,32 @@ export default {
   color: var(--dark-color);
   font-size: 22px;
   margin-bottom: 10px;
+  text-align: center;
 }
 
 .feedback-description {
   color: var(--gray-color);
   margin-bottom: 20px;
+  text-align: center;
 }
 
 /* 별점 평가 */
-.star-rating {
+.rating-container {
   display: flex;
-  align-items: center;
+  justify-content: center;
+  width: 100%;
   margin-bottom: 20px;
 }
 
+.star-rating {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+
 .rating-label {
+  text-align: center;
   margin-right: 15px;
   font-weight: 500;
 }
@@ -548,7 +640,11 @@ export default {
 
 /* 피드백 폼 */
 .feedback-form {
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 중앙 정렬 */
+  gap: 15px;
+  margin-top: 15px;
 }
 
 .feedback-input {
@@ -562,17 +658,29 @@ export default {
 }
 
 .submit-button {
+  padding: 12px 24px;
   background-color: var(--primary-color);
   color: white;
-  padding: 12px 24px;
+  border: none;
   border-radius: 8px;
+  font-size: 16px;
   font-weight: 500;
+  cursor: pointer;
   transition: all 0.3s;
+  width: auto; /* 버튼 너비를 컨텐츠에 맞게 자동 조정 */
+  min-width: 200px; /* 최소 너비 지정 */
+  text-align: center; /* 텍스트 중앙 정렬 */
 }
 
 .submit-button:hover {
   background-color: var(--secondary-color);
   transform: translateY(-2px);
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: var(--secondary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
 }
 
 /* 피드백 성공 메시지 */
@@ -603,6 +711,24 @@ export default {
 
 .success-message {
   color: var(--gray-color);
+}
+
+.feedback-error {
+  color: #e53e3e;
+  background-color: #fff5f5;
+  border-left: 3px solid #e53e3e;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.submit-button:disabled {
+  background-color: #cbd5e0;
+  color: #a0aec0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* ==========================================================================

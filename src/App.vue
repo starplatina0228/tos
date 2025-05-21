@@ -44,6 +44,8 @@
       <div v-else-if="currentView === 'schedule'" key="schedule">
         <schedule-component
           :scheduleData="scheduleData"
+          :apiResult="apiResult"
+          :userPreferences="optimizationData"
           @restart="restartApp"
         />
       </div>
