@@ -1,7 +1,7 @@
 // src/config/api.js
 export const API_CONFIG = {
   // ======= API URL 설정 =======
-  BASE_URL: 'https://22bb-210-102-204-31.ngrok-free.app',
+  BASE_URL: 'https://643d-210-102-204-31.ngrok-free.app',
   // ===========================
 
   endpoints: {
