@@ -11,6 +11,7 @@
   "dependencies": {
     "core-js": "^3.8.3",
     "gsap": "^3.13.0",
+    "html2canvas": "^1.4.1",
     "three": "^0.176.0",
     "vue": "^3.2.13"
   },

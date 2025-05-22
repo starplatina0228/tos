@@ -67,27 +67,56 @@
         </div>
       </div>
 
-      <!-- 최적화 정보 표시 섹션 -->
-      <div class="optimization-info" v-if="optimizationSummary">
-        <h2 class="info-title">최적화 정보</h2>
+      <!-- 선택된 과목 정보 표시 섹션 -->
+      <div class="course-info" v-if="coursesSummary">
+        <h2 class="info-title">선택된 과목 정보</h2>
         <div class="info-grid">
-          <div class="info-card">
-            <h3>과목 정보</h3>
-            <p><strong>총 학점:</strong> {{ optimizationSummary.totalCredits }}학점</p>
-            <p><strong>총 과목 수:</strong> {{ optimizationSummary.totalCourses }}개</p>
+          <!-- 전체 요약 -->
+          <div class="info-card summary-card">
+            <h3>수강 요약</h3>
+            <p><strong>총 학점:</strong> {{ coursesSummary.totalCredits }}학점</p>
+            <p><strong>총 과목 수:</strong> {{ coursesSummary.totalCourses }}개</p>
           </div>
+
+          <!-- 학점별 분류 -->
           <div class="info-card">
-            <h3>최적화 점수</h3>
-            <p><strong>목적 함수 값:</strong> {{ Math.round(optimizationSummary.objectiveValue * 100) / 100 }}</p>
-            <p><strong>Priority 점수:</strong> {{ optimizationSummary.breakdown.priority }}</p>
+            <h3>학점별 분류</h3>
+            <p><strong>전공필수:</strong> {{ coursesSummary.creditsByCategory.전공필수 || 0 }}학점</p>
+            <p><strong>전공선택:</strong> {{ coursesSummary.creditsByCategory.전공선택 || 0 }}학점</p>
+            <p><strong>공학기초:</strong> {{ coursesSummary.creditsByCategory.공학기초 || 0 }}학점</p>
+            <p><strong>기타:</strong> {{ (coursesSummary.creditsByCategory.교양 || 0) + (coursesSummary.creditsByCategory.기타 || 0) }}학점</p>
           </div>
+
+          <!-- 학년별 수강 과목 -->
           <div class="info-card">
-            <h3>선호도 반영</h3>
-            <p><strong>아침 수업:</strong> {{ optimizationSummary.breakdown.mor }}</p>
-            <p><strong>저녁 수업:</strong> {{ optimizationSummary.breakdown.late }}</p>
-            <p><strong>점심 시간대:</strong> {{ optimizationSummary.breakdown.lunch }}</p>
-            <p><strong>공강일:</strong> {{ optimizationSummary.breakdown.freeday }}</p>
-            <p><strong>긴 공강:</strong> {{ optimizationSummary.breakdown.longgap }}</p>
+            <h3>학년별 수강 과목</h3>
+            <p v-for="(count, grade) in coursesSummary.coursesByGrade" :key="grade">
+              <strong>{{ grade }}:</strong> {{ count }}과목
+            </p>
+          </div>
+        </div>
+
+        <!-- 과목 상세 목록 -->
+        <div class="course-list">
+          <h3 class="course-list-title">수강 과목 목록</h3>
+          <div class="course-items">
+            <div v-for="course in selectedCourses" :key="course.subjId" class="course-item">
+              <div class="course-header">
+                <span class="course-name">{{ course.subjKnm || course.name }}</span>
+                <span class="course-credits">{{ parseCredits(course.crd || course.credits) }}학점</span>
+              </div>
+              <div class="course-details">
+                <span class="course-category">{{ course.curiCparNm || course.category }}</span>
+                <span class="course-grade">{{ course.grade }}학년</span>
+                <span class="course-professor">{{ course.wkLecrEmpnm || course.professor }}</span>
+              </div>
+              <div class="course-schedule">
+                <span v-for="(schedule, idx) in (course.schedules || course.schedule_info)" :key="idx" class="schedule-time">
+                  {{ getDayKorean(schedule.day) }} {{ formatTimeSlot(schedule.start_time || schedule.start) }}-{{ formatTimeSlot(schedule.end_time || schedule.end) }}
+                  <span v-if="schedule.location" class="schedule-location">({{ schedule.location }})</span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -97,27 +126,12 @@
         <h2 class="feedback-title">시간표 피드백</h2>
         <p class="feedback-description">생성된 시간표에 대한 의견을 알려주세요!</p>
 
-        <div class="rating-container">
-          <div class="star-rating">
-            <span class="rating-label">만족도:</span>
-            <div class="stars">
-              <span
-                v-for="star in 5"
-                :key="star"
-                class="star"
-                :class="{ 'active': star <= rating }"
-                @click="setRating(star)"
-              >★</span>
-            </div>
-          </div>
-        </div>
-
         <!-- 피드백 폼 부분 -->
         <div class="feedback-form">
           <textarea
             v-model="feedbackText"
             class="feedback-input"
-            placeholder="이 시간표에 대한 의견을 자유롭게 작성해주세요..."
+            placeholder="시간표 최적화 서비스에 대한 개선사항 및 의견을 자유롭게 작성해주세요."
             rows="4"
             :disabled="isSubmitting"
           ></textarea>
@@ -150,9 +164,29 @@
         <button class="action-button restart-button" @click="onRestart">
           다시 시작
         </button>
-        <button class="action-button save-button" @click="onSave">
-          저장하기
+        <button
+          class="action-button save-button"
+          @click="onSave"
+          :disabled="isSaving"
+        >
+          <span v-if="isSaving">
+            <span class="loading-spinner"></span> 저장 중...
+          </span>
+          <span v-else>
+            저장하기
+          </span>
         </button>
+      </div>
+
+      <!-- 저장 결과 메시지 -->
+      <div v-if="saveSuccess" class="save-notification success">
+        <span class="notification-icon">✓</span>
+        시간표가 클립보드에 복사되었습니다!
+      </div>
+
+      <div v-if="saveError" class="save-notification error">
+        <span class="notification-icon">⚠</span>
+        {{ saveError }}
       </div>
     </div>
   </div>
@@ -160,6 +194,7 @@
 
 <script>
 import { API_CONFIG } from '@/config/api';
+import html2canvas from 'html2canvas';
 
 export default {
   name: 'ScheduleComponent',
@@ -189,12 +224,15 @@ export default {
   data() {
     return {
       // 피드백 관련 데이터
-      rating: 0,
       feedbackText: '',
       feedbackSubmitted: false,
-      optimizationSummary: null,
+      coursesSummary: null,
+      selectedCourses: [],
       isSubmitting: false,
-      feedbackError: null
+      feedbackError: null,
+      isSaving: false,         // 저장 중 상태
+      saveSuccess: false,      // 저장 성공 상태
+      saveError: null          // 저장 오류 메시지
     }
   },
   computed: {
@@ -207,9 +245,9 @@ export default {
     }
   },
   created() {
-    // 최적화 결과 요약 정보 생성
-    if (this.$props.scheduleData && this.$props.apiResult) {
-      this.processOptimizationSummary(this.$props.apiResult);
+    // 선택된 과목 정보 처리
+    if (this.$props.apiResult && this.$props.apiResult.selected) {
+      this.processSelectedCourses(this.$props.apiResult.selected);
     }
   },
   methods: {
@@ -217,32 +255,16 @@ export default {
       this.$emit('restart');
     },
 
-    onSave() {
-      // 저장 로직 구현
-      alert('시간표가 저장되었습니다!');
-    },
-
-    // 피드백 관련 메소드 구현해야 함
-    setRating(star) {
-      this.rating = star;
-    },
-
     async submitFeedback() {
-
       try {
+
         // 로딩 상태 시작
         this.isSubmitting = true;
         this.feedbackError = null;
 
-        // 유효성 검사
-        if (this.rating === 0) {
-          this.feedbackError = "별점을 선택해주세요.";
-          return;
-        }
-
         // 피드백 데이터 준비
         const feedbackData = {
-          rating: this.rating,
+          // rating: this.rating,
           comment: this.feedbackText || "",
           schedule: this.scheduleData || [],
           // 부모 컴포넌트에서 전달받은 사용자 설정 정보 사용
@@ -289,24 +311,154 @@ export default {
       }
     },
 
-    // 최적화 정보 처리
-    processOptimizationSummary(result) {
-      if (result && result.selected) {
-        this.optimizationSummary = {
-          totalCredits: result.total_credits || 0,
-          totalCourses: result.selected.length || 0,
-          objectiveValue: result.objective_value || 0,
-          breakdown: result.breakdown || {
-            priority: 0,
-            dev: 0,
-            mor: 0,
-            late: 0,
-            lunch: 0,
-            freeday: 0,
-            longgap: 0
+    // 시간표를 이미지로 저장하는 메소드
+    async onSave() {
+      // 이미 저장 중이면 중복 실행 방지
+      if (this.isSaving) return;
+
+      // 상태 초기화
+      this.isSaving = true;
+      this.saveSuccess = false;
+      this.saveError = null;
+
+      try {
+        // 1. 시간표 컨테이너 요소 찾기
+        const timetableEl = document.querySelector('.timetable-container');
+        if (!timetableEl) {
+          throw new Error('시간표 요소를 찾을 수 없습니다.');
+        }
+
+        // 2. HTML2Canvas로 시간표 캡처
+        const canvas = await html2canvas(timetableEl, {
+          backgroundColor: '#ffffff',     // 배경색 설정
+          scale: 2,                       // 고화질을 위한 스케일 2배 설정
+          useCORS: true,                  // 크로스 오리진 이미지 허용
+          logging: false                  // 디버그 로그 비활성화
+        });
+
+        // 3. 캔버스를 PNG Blob으로 변환
+        canvas.toBlob(async (blob) => {
+          try {
+            // 4. 클립보드 API 지원 확인
+            if (navigator.clipboard && navigator.clipboard.write) {
+              // 최신 클립보드 API 사용 (Chrome, Edge, Firefox)
+              const clipboardItem = new ClipboardItem({ 'image/png': blob });
+              await navigator.clipboard.write([clipboardItem]);
+
+              // 성공 메시지 표시
+              this.saveSuccess = true;
+
+              // 3초 후 성공 메시지 숨기기
+              setTimeout(() => {
+                this.saveSuccess = false;
+              }, 3000);
+
+            } else {
+              // 구형 브라우저용 대체 방법: 다운로드로 제공
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = '내_시간표.png';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+
+              // 다운로드 성공 메시지
+              this.saveSuccess = true;
+              setTimeout(() => {
+                this.saveSuccess = false;
+              }, 3000);
+            }
+          } catch (clipError) {
+            console.error('클립보드 저장 실패:', clipError);
+            this.saveError = '클립보드에 저장할 수 없습니다. 권한을 확인하거나 다시 시도해주세요.';
+          } finally {
+            this.isSaving = false;
           }
-        };
+        }, 'image/png');
+
+      } catch (error) {
+        console.error('이미지 생성 오류:', error);
+        this.saveError = '시간표 이미지를 생성할 수 없습니다. 다시 시도해주세요.';
+        this.isSaving = false;
       }
+    },
+
+    // 선택된 과목 정보 처리
+    processSelectedCourses(selectedCourses) {
+      this.selectedCourses = selectedCourses;
+
+      // 요약 정보 생성
+      const totalCredits = selectedCourses.reduce((sum, course) => {
+        // 학점 정보 파싱 (예: "3(0)" -> 3)
+        const credits = this.parseCredits(course.crd || course.credits);
+        return sum + credits;
+      }, 0);
+      const totalCourses = selectedCourses.length;
+
+      // 카테고리별 학점 계산
+      const creditsByCategory = {};
+      selectedCourses.forEach(course => {
+        const category = course.curiCparNm || course.category || '기타';
+        const credits = this.parseCredits(course.crd || course.credits);
+        creditsByCategory[category] = (creditsByCategory[category] || 0) + credits;
+      });
+
+      // 학년별 과목 수 계산
+      const coursesByGrade = {};
+      selectedCourses.forEach(course => {
+        const grade = course.grade || '미분류';
+        coursesByGrade[grade] = (coursesByGrade[grade] || 0) + 1;
+      });
+
+      this.coursesSummary = {
+        totalCredits,
+        totalCourses,
+        creditsByCategory,
+        coursesByGrade
+      };
+    },
+
+    // 학점 정보 파싱 함수 추가
+    parseCredits(creditString) {
+      if (typeof creditString === 'number') return creditString;
+      if (typeof creditString === 'string') {
+        // "3(0)" 형태에서 첫 번째 숫자 추출
+        const match = creditString.match(/^(\d+)/);
+        return match ? parseInt(match[1]) : 0;
+      }
+      return 0;
+    },
+
+    // 요일 한글 변환
+    getDayKorean(day) {
+      const dayMap = {
+        'MON': '월', 'TUE': '화', 'WED': '수', 'THU': '목', 'FRI': '금',
+        'monday': '월', 'tuesday': '화', 'wednesday': '수', 'thursday': '목', 'friday': '금'
+      };
+      return dayMap[day] || day;
+    },
+
+    // 시간 슬롯 포맷팅 (MongoDB 데이터용)
+    formatTimeSlot(timeSlot) {
+      if (typeof timeSlot === 'number') {
+        // 1교시=9:00, 2교시=9:30, ... 형태로 변환
+        const hour = Math.floor((timeSlot - 1) / 2) + 9;
+        const minute = ((timeSlot - 1) % 2) * 30;
+        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      }
+      return timeSlot;
+    },
+
+    // 시간 포맷팅
+    formatTime(timeSlot) {
+      // timeSlot이 숫자라면 시간으로 변환
+      if (typeof timeSlot === 'number') {
+        const hour = Math.floor(timeSlot / 2) + 9; // 9시부터 시작
+        const minute = (timeSlot % 2) * 30;
+        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      }
+      return timeSlot;
     },
 
     // 더미 시간표 생성 함수
@@ -338,6 +490,7 @@ export default {
   }
 }
 </script>
+
 
 <style scoped>
 /* ==========================================================================
@@ -537,7 +690,147 @@ export default {
 }
 
 /* ==========================================================================
-   5. 액션 버튼
+   5. 선택된 과목 정보 섹션
+   ========================================================================== */
+.course-info {
+  padding: 30px;
+  border-top: 1px solid #e9ecef;
+}
+
+.info-title {
+  color: var(--dark-color);
+  font-size: 22px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.info-card {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.summary-card {
+  background-color: #e6f3ff;
+  border-left: 4px solid var(--primary-color);
+}
+
+.info-card h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.info-card p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: var(--gray-color);
+}
+
+.info-card strong {
+  color: var(--dark-color);
+}
+
+/* 과목 목록 스타일 */
+.course-list {
+  margin-top: 20px;
+}
+
+.course-list-title {
+  font-size: 18px;
+  color: var(--dark-color);
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.course-items {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.course-item {
+  background-color: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s;
+}
+
+.course-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.course-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.course-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+.course-credits {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.course-details {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.course-category, .course-grade, .course-professor {
+  font-size: 13px;
+  color: var(--gray-color);
+  background-color: #f8f9fa;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.course-schedule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.schedule-time {
+  font-size: 13px;
+  color: var(--primary-color);
+  background-color: #e6f3ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.schedule-location {
+  color: var(--gray-color);
+  font-weight: normal;
+}
+
+/* ==========================================================================
+   6. 액션 버튼
    ========================================================================== */
 .action-buttons {
   display: flex;
@@ -561,27 +854,84 @@ export default {
   color: var(--gray-color);
 }
 
+.restart-button:hover {
+  background-color: #dee2e6;
+}
+
 .save-button {
   background-color: var(--primary-color);
   color: white;
 }
 
-.restart-button:hover {
-  background-color: #dee2e6;
-}
-
-.save-button:hover {
+.save-button:hover:not(:disabled) {
   background-color: var(--secondary-color);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
 }
 
-.action-buttons.with-margin {
-  margin-top: 0;
+.save-button:disabled {
+  background-color: #cbd5e0;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* 로딩 스피너 애니메이션 */
+.loading-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 알림 메시지 스타일 */
+.save-notification {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slide-up 0.3s ease, fade-out 0.3s ease 2.7s forwards;
+}
+
+.save-notification.success {
+  background-color: #10b981;
+  color: white;
+}
+
+.save-notification.error {
+  background-color: #ef4444;
+  color: white;
+}
+
+.notification-icon {
+  font-size: 18px;
+}
+
+@keyframes slide-up {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 /* ==========================================================================
-   6. 피드백 섹션
+   7. 피드백 섹션
    ========================================================================== */
 .feedback-section {
   padding: 30px;
@@ -599,43 +949,6 @@ export default {
   color: var(--gray-color);
   margin-bottom: 20px;
   text-align: center;
-}
-
-/* 별점 평가 */
-.rating-container {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  margin-bottom: 20px;
-}
-
-.star-rating {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-
-.rating-label {
-  text-align: center;
-  margin-right: 15px;
-  font-weight: 500;
-}
-
-.stars {
-  display: flex;
-}
-
-.star {
-  font-size: 28px;
-  color: #d1d5db;
-  cursor: pointer;
-  transition: color 0.2s;
-  margin-right: 5px;
-}
-
-.star:hover, .star.active {
-  color: #fbbf24;
 }
 
 /* 피드백 폼 */
@@ -732,51 +1045,6 @@ export default {
 }
 
 /* ==========================================================================
-   7. 최적화 정보 섹션
-   ========================================================================== */
-.optimization-info {
-  padding: 30px;
-  border-top: 1px solid #e9ecef;
-}
-
-.info-title {
-  color: var(--dark-color);
-  font-size: 22px;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.info-card {
-  background-color: #f8f9fa;
-  border-radius: 10px;
-  padding: 15px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.info-card h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-.info-card p {
-  margin: 8px 0;
-  font-size: 14px;
-  color: var(--gray-color);
-}
-
-.info-card strong {
-  color: var(--dark-color);
-}
-
-/* ==========================================================================
    8. 반응형 디자인 (미디어 쿼리)
    ========================================================================== */
 @media (max-width: 768px) {
@@ -791,6 +1059,24 @@ export default {
   .schedule-item {
     font-size: 12px;
     padding: 4px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .course-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .course-details {
+    gap: 8px;
+  }
+
+  .schedule-time {
+    font-size: 12px;
   }
 }
 </style>
