@@ -8,7 +8,7 @@
       <div class="footer-text">
         <p class="footer-description">
           Powered by <strong>COIS Lab</strong> -
-          Computational Optimization for Intelligent Systems
+          Computational Optimization for Intelligent Systems (TL: Seung Chan Choi)
         </p>
         <p class="footer-copyright">
           © 2025 COIS. 단국대학교 경영공학과
