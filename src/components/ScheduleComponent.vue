@@ -1,203 +1,408 @@
 <template>
-  <div class="schedule-container">
-    <div class="schedule-card">
-      <div class="schedule-header">
-        <h1 class="title">당신의 시간표는</h1>
-        <p class="subtitle">맞춤형 일정을 확인해보세요</p>
-      </div>
+  <div class="schedule-page">
+    <div class="schedule-container">
+      <div class="schedule-card">
+        <div class="schedule-header">
+          <h1 class="title">당신의 시간표는</h1>
+          <p class="subtitle">맞춤형 일정을 확인해보세요</p>
+        </div>
 
-      <div class="schedule-content">
-        <div class="timetable">
-          <div class="day-header">
-            <div class="time-slot"></div>
-            <div class="day">월</div>
-            <div class="day">화</div>
-            <div class="day">수</div>
-            <div class="day">목</div>
-            <div class="day">금</div>
+        <div class="schedule-content">
+          <div class="timetable">
+            <div class="day-header">
+              <div class="time-slot"></div>
+              <div class="day">월</div>
+              <div class="day">화</div>
+              <div class="day">수</div>
+              <div class="day">목</div>
+              <div class="day">금</div>
+            </div>
+
+            <div class="timetable-grid">
+              <div class="grid-container">
+                <!-- 시간대 표시 -->
+                <div class="time-column">
+                  <div class="time">9:00</div>
+                  <div class="time">9:30</div>
+                  <div class="time">10:00</div>
+                  <div class="time">10:30</div>
+                  <div class="time">11:00</div>
+                  <div class="time">11:30</div>
+                  <div class="time">12:00</div>
+                  <div class="time">12:30</div>
+                  <div class="time">13:00</div>
+                  <div class="time">13:30</div>
+                  <div class="time">14:00</div>
+                  <div class="time">14:30</div>
+                  <div class="time">15:00</div>
+                  <div class="time">15:30</div>
+                  <div class="time">16:00</div>
+                  <div class="time">16:30</div>
+                  <div class="time">17:00</div>
+                  <div class="time">17:30</div>
+                </div>
+
+                <!-- 실제 시간표 내용 -->
+                <div class="schedule-grid">
+                  <!-- 배경 격자 생성 -->
+                  <div v-for="i in 18" :key="`grid-row-${i}`" class="grid-row-divider" :style="{top: `${i * 30}px`}"></div>
+
+                  <!-- 스케줄 아이템 -->
+                  <template v-for="(item, index) in scheduleItems" :key="index">
+                    <div
+                      class="schedule-item"
+                      :class="item.type"
+                      :style="{
+                        gridColumn: `${item.day} / span 1`,
+                        gridRow: `${calculateGridRow(item.startHour, item.startMinute)} / span ${calculateGridSpan(item.duration)}`
+                      }"
+                    >
+                      <span class="item-title">{{ item.title }}</span>
+                      <span v-if="item.location" class="item-location">{{ item.location }}</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 선택된 과목 정보 표시 섹션 -->
+        <div class="course-info" v-if="coursesSummary">
+          <h2 class="info-title">선택된 과목 정보</h2>
+
+          <!-- 탭 메뉴 추가 -->
+          <div class="tab-menu">
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'summary' }"
+              @click="activeTab = 'summary'"
+            >
+              수강 요약
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'category' }"
+              @click="activeTab = 'category'"
+            >
+              학점별 분류
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'grade' }"
+              @click="activeTab = 'grade'"
+            >
+              학년별 수강 과목
+            </button>
           </div>
 
-          <div class="timetable-grid">
-            <div class="grid-container">
-              <!-- 시간대 표시 -->
-              <div class="time-column">
-                <div class="time">9:00</div>
-                <div class="time">9:30</div>
-                <div class="time">10:00</div>
-                <div class="time">10:30</div>
-                <div class="time">11:00</div>
-                <div class="time">11:30</div>
-                <div class="time">12:00</div>
-                <div class="time">12:30</div>
-                <div class="time">13:00</div>
-                <div class="time">13:30</div>
-                <div class="time">14:00</div>
-                <div class="time">14:30</div>
-                <div class="time">15:00</div>
-                <div class="time">15:30</div>
-                <div class="time">16:00</div>
-                <div class="time">16:30</div>
-                <div class="time">17:00</div>
-                <div class="time">17:30</div>
-              </div>
-
-              <!-- 실제 시간표 내용 -->
-              <div class="schedule-grid">
-                <!-- 배경 격자 생성 -->
-                <div v-for="i in 18" :key="`grid-row-${i}`" class="grid-row-divider" :style="{top: `${i * 30}px`}"></div>
-
-                <!-- 스케줄 아이템 -->
-                <template v-for="(item, index) in scheduleItems" :key="index">
-                  <div
-                    class="schedule-item"
-                    :class="item.type"
-                    :style="{
-                      gridColumn: `${item.day} / span 1`,
-                      gridRow: `${calculateGridRow(item.startHour, item.startMinute)} / span ${calculateGridSpan(item.duration)}`
-                    }"
-                  >
-                    <span class="item-title">{{ item.title }}</span>
-                    <span v-if="item.location" class="item-location">{{ item.location }}</span>
+          <!-- 탭 내용 -->
+          <div class="tab-content">
+            <!-- 수강 요약 탭 -->
+            <div v-if="activeTab === 'summary'" class="tab-panel">
+              <!-- 메인 요약 카드들 -->
+              <div class="summary-header">
+                <div class="summary-main-card">
+                  <div class="summary-icon">📚</div>
+                  <div class="summary-content">
+                    <h2 class="summary-title">{{ coursesSummary.totalCredits }}학점</h2>
+                    <p class="summary-subtitle">총 {{ coursesSummary.totalCourses }}개 과목 수강</p>
+                    <div class="credits-progress">
+                      <div class="progress-bar">
+                        <div class="progress-fill" :style="{ width: `${(coursesSummary.totalCredits / userPreferences.desired_credits) * 100}%` }"></div>
+                      </div>
+                      <span class="progress-text">목표: {{ userPreferences.desired_credits }}학점</span>
+                    </div>
                   </div>
-                </template>
+                </div>
+              </div>
+
+              <!-- 상세 분석 그리드 -->
+              <div class="analysis-grid">
+                <!-- 학점별 분류 카드 -->
+                <div class="analysis-card category-card">
+                  <div class="card-header">
+                    <h3 class="card-title">
+                      <span class="card-icon">🎯</span>
+                      학점별 분류
+                    </h3>
+                  </div>
+                  <div class="category-breakdown">
+                    <div class="category-item major-required" v-if="coursesSummary.creditsByCategory.전공필수">
+                      <div class="category-info">
+                        <span class="category-name">전공필수</span>
+                        <span class="category-credits">{{ coursesSummary.creditsByCategory.전공필수 }}학점</span>
+                      </div>
+                      <div class="category-bar">
+                        <div class="bar-fill" :style="{ width: `${(coursesSummary.creditsByCategory.전공필수 / coursesSummary.totalCredits) * 100}%` }"></div>
+                      </div>
+                    </div>
+                    <div class="category-item major-elective" v-if="coursesSummary.creditsByCategory.전공선택">
+                      <div class="category-info">
+                        <span class="category-name">전공선택</span>
+                        <span class="category-credits">{{ coursesSummary.creditsByCategory.전공선택 }}학점</span>
+                      </div>
+                      <div class="category-bar">
+                        <div class="bar-fill" :style="{ width: `${(coursesSummary.creditsByCategory.전공선택 / coursesSummary.totalCredits) * 100}%` }"></div>
+                      </div>
+                    </div>
+                    <div class="category-item engineering-basic" v-if="coursesSummary.creditsByCategory.공학기초">
+                      <div class="category-info">
+                        <span class="category-name">공학기초</span>
+                        <span class="category-credits">{{ coursesSummary.creditsByCategory.공학기초 }}학점</span>
+                      </div>
+                      <div class="category-bar">
+                        <div class="bar-fill" :style="{ width: `${(coursesSummary.creditsByCategory.공학기초 / coursesSummary.totalCredits) * 100}%` }"></div>
+                      </div>
+                    </div>
+                    <div class="category-item others" v-if="(coursesSummary.creditsByCategory.교양 || 0) + (coursesSummary.creditsByCategory.기타 || 0) > 0">
+                      <div class="category-info">
+                        <span class="category-name">기타</span>
+                        <span class="category-credits">{{ (coursesSummary.creditsByCategory.교양 || 0) + (coursesSummary.creditsByCategory.기타 || 0) }}학점</span>
+                      </div>
+                      <div class="category-bar">
+                        <div class="bar-fill" :style="{ width: `${((coursesSummary.creditsByCategory.교양 || 0) + (coursesSummary.creditsByCategory.기타 || 0)) / coursesSummary.totalCredits * 100}%` }"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 요일별 수업 분포 -->
+                <div class="analysis-card schedule-distribution">
+                  <div class="card-header">
+                    <h3 class="card-title">
+                      <span class="card-icon">📅</span>
+                      요일별 수업 분포
+                    </h3>
+                  </div>
+                  <div class="day-distribution">
+                    <div v-for="(count, day) in dayDistribution" :key="day" class="day-item">
+                      <div class="day-info">
+                        <span class="day-name">{{ day }}</span>
+                        <span class="day-count">{{ count }}과목</span>
+                      </div>
+                      <div class="day-bar">
+                        <div class="bar-fill" :style="{ width: `${count > 0 ? (count / Math.max(...Object.values(dayDistribution))) * 100 : 0}%` }"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 시간대 분석 -->
+                <div class="analysis-card time-analysis">
+                  <div class="card-header">
+                    <h3 class="card-title">
+                      <span class="card-icon">⏰</span>
+                      시간대 분석
+                    </h3>
+                  </div>
+                  <div class="time-stats">
+                    <div class="time-stat-item">
+                      <div class="stat-icon morning">🌅</div>
+                      <div class="stat-info">
+                        <span class="stat-label">오전 수업</span>
+                        <span class="stat-value">{{ morningClassCount }}개</span>
+                      </div>
+                    </div>
+                    <div class="time-stat-item">
+                      <div class="stat-icon afternoon">☀️</div>
+                      <div class="stat-info">
+                        <span class="stat-label">오후 수업</span>
+                        <span class="stat-value">{{ afternoonClassCount }}개</span>
+                      </div>
+                    </div>
+                    <div class="time-stat-item">
+                      <div class="stat-icon evening">🌙</div>
+                      <div class="stat-info">
+                        <span class="stat-label">저녁 수업</span>
+                        <span class="stat-value">{{ eveningClassCount }}개</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 학습 패턴 인사이트 -->
+                <div class="analysis-card insights-card">
+                  <div class="card-header">
+                    <h3 class="card-title">
+                      <span class="card-icon">💡</span>
+                      학습 패턴 분석
+                    </h3>
+                  </div>
+                  <div class="insights-content">
+                    <div class="insight-item" v-for="insight in learningInsights" :key="insight.id">
+                      <div class="insight-icon" :class="insight.type">{{ insight.emoji }}</div>
+                      <div class="insight-text">{{ insight.message }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 추천사항 -->
+                <div class="analysis-card recommendations">
+                  <div class="card-header">
+                    <h3 class="card-title">
+                      <span class="card-icon">✨</span>
+                      맞춤 추천
+                    </h3>
+                  </div>
+                  <div class="recommendations-content">
+                    <div class="recommendation-item" v-for="rec in recommendations" :key="rec.id">
+                      <div class="rec-badge" :class="rec.type">{{ rec.badge }}</div>
+                      <div class="rec-text">{{ rec.message }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 학점별 분류 탭 -->
+            <div v-if="activeTab === 'category'" class="tab-panel">
+              <div class="category-list">
+                <div v-for="(courses, category) in coursesByCategory" :key="category" class="category-section">
+                  <h3 class="category-title">
+                    {{ category }}
+                    <span class="category-credits">({{ getCategoryCredits(courses) }}학점)</span>
+                  </h3>
+                  <div class="course-items">
+                    <div v-for="course in courses" :key="course.subjId" class="course-item">
+                      <div class="course-header">
+                        <span class="course-name">{{ course.subjKnm || course.name }}</span>
+                        <span class="course-credits">{{ parseCredits(course.crd || course.credits) }}학점</span>
+                      </div>
+                      <div class="course-details">
+                        <span class="course-grade">{{ course.grade }}학년</span>
+                        <span class="course-professor">{{ course.wkLecrEmpnm || course.professor }}</span>
+                      </div>
+                      <div class="course-schedule">
+                        <span v-for="(schedule, idx) in (course.schedules || course.schedule_info)" :key="idx" class="schedule-time">
+                          {{ getDayKorean(schedule.day) }} {{ formatTimeSlot(schedule.start_time || schedule.start) }}-{{ formatTimeSlot(schedule.end_time || schedule.end) }}
+                          <span v-if="schedule.location" class="schedule-location">({{ schedule.location }})</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 학년별 수강 과목 탭 -->
+            <div v-if="activeTab === 'grade'" class="tab-panel">
+              <div class="grade-list">
+                <div v-for="(courses, grade) in coursesByGrade" :key="grade" class="grade-section">
+                  <h3 class="grade-title">
+                    {{ grade }}학년
+                    <span class="grade-count">({{ courses.length }}과목, {{ getGradeCredits(courses) }}학점)</span>
+                  </h3>
+                  <div class="course-items">
+                    <div v-for="course in courses" :key="course.subjId" class="course-item">
+                      <div class="course-header">
+                        <span class="course-name">{{ course.subjKnm || course.name }}</span>
+                        <span class="course-credits">{{ parseCredits(course.crd || course.credits) }}학점</span>
+                      </div>
+                      <div class="course-details">
+                        <span class="course-category">{{ course.curiCparNm || course.category }}</span>
+                        <span class="course-professor">{{ course.wkLecrEmpnm || course.professor }}</span>
+                      </div>
+                      <div class="course-schedule">
+                        <span v-for="(schedule, idx) in (course.schedules || course.schedule_info)" :key="idx" class="schedule-time">
+                          {{ getDayKorean(schedule.day) }} {{ formatTimeSlot(schedule.start_time || schedule.start) }}-{{ formatTimeSlot(schedule.end_time || schedule.end) }}
+                          <span v-if="schedule.location" class="schedule-location">({{ schedule.location }})</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-        </div>
-      </div>
-
-      <!-- 선택된 과목 정보 표시 섹션 -->
-      <div class="course-info" v-if="coursesSummary">
-        <h2 class="info-title">선택된 과목 정보</h2>
-        <div class="info-grid">
-          <!-- 전체 요약 -->
-          <div class="info-card summary-card">
-            <h3>수강 요약</h3>
-            <p><strong>총 학점:</strong> {{ coursesSummary.totalCredits }}학점</p>
-            <p><strong>총 과목 수:</strong> {{ coursesSummary.totalCourses }}개</p>
-          </div>
-
-          <!-- 학점별 분류 -->
-          <div class="info-card">
-            <h3>학점별 분류</h3>
-            <p><strong>전공필수:</strong> {{ coursesSummary.creditsByCategory.전공필수 || 0 }}학점</p>
-            <p><strong>전공선택:</strong> {{ coursesSummary.creditsByCategory.전공선택 || 0 }}학점</p>
-            <p><strong>공학기초:</strong> {{ coursesSummary.creditsByCategory.공학기초 || 0 }}학점</p>
-            <p><strong>기타:</strong> {{ (coursesSummary.creditsByCategory.교양 || 0) + (coursesSummary.creditsByCategory.기타 || 0) }}학점</p>
-          </div>
-
-          <!-- 학년별 수강 과목 -->
-          <div class="info-card">
-            <h3>학년별 수강 과목</h3>
-            <p v-for="(count, grade) in coursesSummary.coursesByGrade" :key="grade">
-              <strong>{{ grade }}:</strong> {{ count }}과목
-            </p>
-          </div>
         </div>
 
-        <!-- 과목 상세 목록 -->
-        <div class="course-list">
-          <h3 class="course-list-title">수강 과목 목록</h3>
-          <div class="course-items">
-            <div v-for="course in selectedCourses" :key="course.subjId" class="course-item">
-              <div class="course-header">
-                <span class="course-name">{{ course.subjKnm || course.name }}</span>
-                <span class="course-credits">{{ parseCredits(course.crd || course.credits) }}학점</span>
-              </div>
-              <div class="course-details">
-                <span class="course-category">{{ course.curiCparNm || course.category }}</span>
-                <span class="course-grade">{{ course.grade }}학년</span>
-                <span class="course-professor">{{ course.wkLecrEmpnm || course.professor }}</span>
-              </div>
-              <div class="course-schedule">
-                <span v-for="(schedule, idx) in (course.schedules || course.schedule_info)" :key="idx" class="schedule-time">
-                  {{ getDayKorean(schedule.day) }} {{ formatTimeSlot(schedule.start_time || schedule.start) }}-{{ formatTimeSlot(schedule.end_time || schedule.end) }}
-                  <span v-if="schedule.location" class="schedule-location">({{ schedule.location }})</span>
-                </span>
-              </div>
+        <!-- 피드백 섹션 -->
+        <div class="feedback-section" v-if="!feedbackSubmitted">
+          <h2 class="feedback-title">시간표 피드백</h2>
+          <p class="feedback-description">생성된 시간표에 대한 의견을 알려주세요!</p>
+
+          <!-- 피드백 폼 부분 -->
+          <div class="feedback-form">
+            <textarea
+              v-model="feedbackText"
+              class="feedback-input"
+              :class="{ 'error': feedbackError && !feedbackText.trim() }"
+              placeholder="시간표 최적화 서비스에 대한 개선사항 및 의견을 자유롭게 작성해주세요. (필수 입력)"
+              rows="4"
+              :disabled="isSubmitting"
+            ></textarea>
+
+            <div v-if="feedbackError" class="feedback-error">
+              {{ feedbackError }}
             </div>
+
+            <button
+              class="submit-button"
+              @click="submitFeedback"
+              :disabled="isSubmitting || !feedbackText.trim()"
+              :class="{ 'disabled': !feedbackText.trim() }"
+            >
+              <span v-if="isSubmitting">제출 중...</span>
+              <span v-else>피드백 제출</span>
+            </button>
           </div>
+
         </div>
-      </div>
 
-      <!-- 피드백 섹션 -->
-      <div class="feedback-section" v-if="!feedbackSubmitted">
-        <h2 class="feedback-title">시간표 피드백</h2>
-        <p class="feedback-description">생성된 시간표에 대한 의견을 알려주세요!</p>
+        <!-- 피드백 제출 성공 메시지 -->
+        <div class="feedback-success" v-else>
+          <div class="success-icon">✓</div>
+          <h2 class="success-title">피드백이 제출되었습니다!</h2>
+          <p class="success-message">소중한 의견 감사합니다.</p>
+        </div>
 
-        <!-- 피드백 폼 부분 -->
-        <div class="feedback-form">
-          <textarea
-            v-model="feedbackText"
-            class="feedback-input"
-            placeholder="시간표 최적화 서비스에 대한 개선사항 및 의견을 자유롭게 작성해주세요."
-            rows="4"
-            :disabled="isSubmitting"
-          ></textarea>
-
-          <div v-if="feedbackError" class="feedback-error">
-            {{ feedbackError }}
-          </div>
-
+        <!-- 액션 버튼 -->
+        <div class="action-buttons" :class="{ 'with-margin': feedbackSubmitted }">
+          <button class="action-button restart-button" @click="onRestart">
+            다시 시작
+          </button>
           <button
-            class="submit-button"
-            @click="submitFeedback"
-            :disabled="isSubmitting"
+            class="action-button save-button"
+            @click="onSave"
+            :disabled="isSaving"
           >
-            <span v-if="isSubmitting">제출 중...</span>
-            <span v-else>피드백 제출</span>
+            <span v-if="isSaving">
+              <span class="loading-spinner"></span> 저장 중...
+            </span>
+            <span v-else>
+              저장하기
+            </span>
           </button>
         </div>
 
-      </div>
+        <!-- 저장 결과 메시지 -->
+        <div v-if="saveSuccess" class="save-notification success">
+          <span class="notification-icon">✓</span>
+          시간표가 클립보드에 복사되었습니다!
+        </div>
 
-      <!-- 피드백 제출 성공 메시지 -->
-      <div class="feedback-success" v-else>
-        <div class="success-icon">✓</div>
-        <h2 class="success-title">피드백이 제출되었습니다!</h2>
-        <p class="success-message">소중한 의견 감사합니다.</p>
-      </div>
-
-      <!-- 액션 버튼 -->
-      <div class="action-buttons" :class="{ 'with-margin': feedbackSubmitted }">
-        <button class="action-button restart-button" @click="onRestart">
-          다시 시작
-        </button>
-        <button
-          class="action-button save-button"
-          @click="onSave"
-          :disabled="isSaving"
-        >
-          <span v-if="isSaving">
-            <span class="loading-spinner"></span> 저장 중...
-          </span>
-          <span v-else>
-            저장하기
-          </span>
-        </button>
-      </div>
-
-      <!-- 저장 결과 메시지 -->
-      <div v-if="saveSuccess" class="save-notification success">
-        <span class="notification-icon">✓</span>
-        시간표가 클립보드에 복사되었습니다!
-      </div>
-
-      <div v-if="saveError" class="save-notification error">
-        <span class="notification-icon">⚠</span>
-        {{ saveError }}
+        <div v-if="saveError" class="save-notification error">
+          <span class="notification-icon">⚠</span>
+          {{ saveError }}
+        </div>
       </div>
     </div>
+    <AppFooter type="full" />
   </div>
 </template>
 
 <script>
 import { API_CONFIG } from '@/config/api';
 import html2canvas from 'html2canvas';
+import AppFooter from './Footer.vue';
 
 export default {
   name: 'ScheduleComponent',
+  components: {
+    AppFooter
+  },
   props: {
     scheduleData: {
       type: Array,
@@ -223,6 +428,9 @@ export default {
   },
   data() {
     return {
+      // 탭 관련 데이터
+      activeTab: 'summary',
+
       // 피드백 관련 데이터
       feedbackText: '',
       feedbackSubmitted: false,
@@ -242,6 +450,189 @@ export default {
       } else {
         return this.generateDummySchedule();
       }
+    },
+
+    // 카테고리별로 그룹화된 과목들
+    coursesByCategory() {
+      const grouped = {};
+      this.selectedCourses.forEach(course => {
+        const category = course.curiCparNm || course.category || '기타';
+        if (!grouped[category]) {
+          grouped[category] = [];
+        }
+        grouped[category].push(course);
+      });
+      return grouped;
+    },
+
+    // 학년별로 그룹화된 과목들
+    coursesByGrade() {
+      const grouped = {};
+      this.selectedCourses.forEach(course => {
+        const grade = course.grade || '미분류';
+        if (!grouped[grade]) {
+          grouped[grade] = [];
+        }
+        grouped[grade].push(course);
+      });
+      return grouped;
+    },
+
+    // 요일별 수업 분포 계산
+    dayDistribution() {
+      const distribution = { '월': 0, '화': 0, '수': 0, '목': 0, '금': 0 };
+
+      this.selectedCourses.forEach(course => {
+        const schedules = course.schedules || course.schedule_info || [];
+        schedules.forEach(schedule => {
+          const day = schedule.day;
+          if (Object.prototype.hasOwnProperty.call(distribution, day)) {
+            distribution[day]++;
+          }
+        });
+      });
+
+      return distribution;
+    },
+
+    // 시간대별 수업 개수
+    morningClassCount() {
+      let count = 0;
+      this.selectedCourses.forEach(course => {
+        const schedules = course.schedules || course.schedule_info || [];
+        schedules.forEach(schedule => {
+          const startTime = schedule.start_time || schedule.start;
+          if (startTime >= 1 && startTime <= 6) { // 9:00-12:00
+            count++;
+          }
+        });
+      });
+      return count;
+    },
+
+    afternoonClassCount() {
+      let count = 0;
+      this.selectedCourses.forEach(course => {
+        const schedules = course.schedules || course.schedule_info || [];
+        schedules.forEach(schedule => {
+          const startTime = schedule.start_time || schedule.start;
+          if (startTime >= 7 && startTime <= 12) { // 12:30-15:00
+            count++;
+          }
+        });
+      });
+      return count;
+    },
+
+    eveningClassCount() {
+      let count = 0;
+      this.selectedCourses.forEach(course => {
+        const schedules = course.schedules || course.schedule_info || [];
+        schedules.forEach(schedule => {
+          const startTime = schedule.start_time || schedule.start;
+          if (startTime >= 13) { // 15:30 이후
+            count++;
+          }
+        });
+      });
+      return count;
+    },
+
+    // 학습 패턴 인사이트
+    learningInsights() {
+      const insights = [];
+
+      // 요일 집중도 분석
+      const maxDayCount = Math.max(...Object.values(this.dayDistribution));
+      const maxDay = Object.keys(this.dayDistribution).find(day => this.dayDistribution[day] === maxDayCount);
+
+      if (maxDayCount > 2) {
+        insights.push({
+          id: 1,
+          type: 'warning',
+          emoji: '⚠️',
+          message: `${maxDay}요일에 ${maxDayCount}개 수업이 집중되어 있어요. 체력 관리에 신경 쓰세요!`
+        });
+      }
+
+      // 시간대 분석
+      if (this.morningClassCount > this.afternoonClassCount + this.eveningClassCount) {
+        insights.push({
+          id: 2,
+          type: 'positive',
+          emoji: '🌅',
+          message: '오전 수업 위주로 구성되어 하루를 효율적으로 활용할 수 있어요!'
+        });
+      }
+
+      // 학점 달성도
+      const achievementRate = (this.coursesSummary.totalCredits / this.userPreferences.desired_credits) * 100;
+      if (achievementRate >= 90) {
+        insights.push({
+          id: 3,
+          type: 'success',
+          emoji: '🎯',
+          message: `목표 학점의 ${Math.round(achievementRate)}%를 달성했습니다!`
+        });
+      }
+
+      return insights.length > 0 ? insights : [
+        {
+          id: 0,
+          type: 'info',
+          emoji: '📊',
+          message: '균형 잡힌 시간표가 구성되었습니다!'
+        }
+      ];
+    },
+
+    // 맞춤 추천사항
+    recommendations() {
+      const recs = [];
+
+      // 공강일 추천
+      const hasFreeDays = Object.values(this.dayDistribution).some(count => count === 0);
+      if (hasFreeDays) {
+        recs.push({
+          id: 1,
+          type: 'success',
+          badge: '👍',
+          message: '공강일이 있어 휴식과 자율학습 시간을 확보할 수 있어요!'
+        });
+      }
+
+      // 전공 비율 분석
+      const majorCredits = (this.coursesSummary.creditsByCategory.전공필수 || 0) +
+                          (this.coursesSummary.creditsByCategory.전공선택 || 0);
+      const majorRatio = majorCredits / this.coursesSummary.totalCredits;
+
+      if (majorRatio > 0.7) {
+        recs.push({
+          id: 2,
+          type: 'info',
+          badge: '📚',
+          message: '전공 과목 위주로 구성되어 전문성 향상에 도움이 됩니다!'
+        });
+      }
+
+      // 시간 효율성
+      if (this.morningClassCount > 2) {
+        recs.push({
+          id: 3,
+          type: 'tip',
+          badge: '⏰',
+          message: '오전 수업이 많으니 충분한 수면과 아침 식사를 챙기세요!'
+        });
+      }
+
+      return recs.length > 0 ? recs : [
+        {
+          id: 0,
+          type: 'default',
+          badge: '✨',
+          message: '잘 구성된 시간표입니다. 학업에 집중하세요!'
+        }
+      ];
     }
   },
   created() {
@@ -257,6 +648,11 @@ export default {
 
     async submitFeedback() {
       try {
+        // 피드백 텍스트 유효성 검사
+        if (!this.feedbackText.trim()) {
+          this.feedbackError = "피드백 의견을 입력해주세요.";
+          return;
+        }
 
         // 로딩 상태 시작
         this.isSubmitting = true;
@@ -264,10 +660,8 @@ export default {
 
         // 피드백 데이터 준비
         const feedbackData = {
-          // rating: this.rating,
-          comment: this.feedbackText || "",
+          comment: this.feedbackText.trim(),
           schedule: this.scheduleData || [],
-          // 부모 컴포넌트에서 전달받은 사용자 설정 정보 사용
           preferences: this.userPreferences
         };
 
@@ -419,6 +813,20 @@ export default {
       };
     },
 
+    // 카테고리별 총 학점 계산
+    getCategoryCredits(courses) {
+      return courses.reduce((sum, course) => {
+        return sum + this.parseCredits(course.crd || course.credits);
+      }, 0);
+    },
+
+    // 학년별 총 학점 계산
+    getGradeCredits(courses) {
+      return courses.reduce((sum, course) => {
+        return sum + this.parseCredits(course.crd || course.credits);
+      }, 0);
+    },
+
     // 학점 정보 파싱 함수 추가
     parseCredits(creditString) {
       if (typeof creditString === 'number') return creditString;
@@ -491,12 +899,21 @@ export default {
 }
 </script>
 
-
 <style scoped>
 /* ==========================================================================
    1. 기본 컨테이너 및 카드 레이아웃
-   ========================================================================== */
+ ========================================================================== */
+/* 새로운 페이지 래퍼 */
+.schedule-page {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  display: flex;
+  flex-direction: column;
+}
+
 .schedule-container {
+  flex : 1;
   width: 100%;
   min-height: 100vh;
   display: flex;
@@ -566,41 +983,39 @@ export default {
 .grid-container {
   display: flex;
   width: 100%;
-  position: relative; /* 자식 요소의 절대 위치 기준 */
+  position: relative;
 }
 
 .time-column {
   width: 60px;
   flex-shrink: 0;
-  z-index: 2; /* 그리드보다 위에 표시 */
+  z-index: 2;
   background-color: #f8f9fa;
   border-right: 1px solid #e9ecef;
 }
 
 .time {
-  height: 30px; /* 30분 단위 행 높이 */
+  height: 30px;
   display: flex;
-  align-items: center; /* 중앙 정렬로 변경 */
+  align-items: center;
   justify-content: center;
   color: var(--gray-color);
   font-size: 12px;
-  border-bottom: 1px solid #e9ecef; /* 구분선 추가 */
+  border-bottom: 1px solid #e9ecef;
   box-sizing: border-box;
 }
 
-/* 스케줄 그리드 개선 */
 .schedule-grid {
   flex-grow: 1;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(18, 30px); /* 30분 단위, 9:00-17:30 */
+  grid-template-rows: repeat(18, 30px);
   position: relative;
-  min-height: 540px; /* 18행 * 30px */
+  min-height: 540px;
   border: 1px solid #e9ecef;
   border-left: none;
 }
 
-/* 그리드 행 구분선 */
 .grid-row-divider {
   position: absolute;
   left: 0;
@@ -610,7 +1025,6 @@ export default {
   z-index: 1;
 }
 
-/* 스케줄 아이템 스타일 개선 */
 .schedule-item {
   background-color: #e2e8f0;
   border-radius: 6px;
@@ -626,33 +1040,14 @@ export default {
   color: white;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  z-index: 5; /* 배경 격자보다 위에 표시 */
+  z-index: 5;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .schedule-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  z-index: 10; /* 호버 시 다른 아이템보다 위에 표시 */
-}
-
-/* ==========================================================================
-   4. 시간표 항목 및 유형별 스타일
-   ========================================================================== */
-.schedule-item {
-  background-color: #e2e8f0;
-  border-radius: 6px;
-  padding: 4px;
-  margin: 1px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 500;
-  text-align: center;
-  color: white;
-  overflow: hidden;
+  z-index: 10;
 }
 
 .item-title {
@@ -690,7 +1085,7 @@ export default {
 }
 
 /* ==========================================================================
-   5. 선택된 과목 정보 섹션
+   4. 탭 메뉴 스타일 (새로 추가)
    ========================================================================== */
 .course-info {
   padding: 30px;
@@ -704,72 +1099,482 @@ export default {
   text-align: center;
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
+.tab-menu {
+  display: flex;
+  justify-content: center;
   margin-bottom: 30px;
+  border-bottom: 2px solid #e9ecef;
 }
 
-.info-card {
-  background-color: #f8f9fa;
-  border-radius: 10px;
-  padding: 15px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+.tab-button {
+  padding: 12px 24px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--gray-color);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  margin: 0 8px;
 }
 
-.summary-card {
-  background-color: #e6f3ff;
-  border-left: 4px solid var(--primary-color);
-}
-
-.info-card h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
+.tab-button:hover {
   color: var(--primary-color);
+}
+
+.tab-button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
   font-weight: 600;
 }
 
-.info-card p {
-  margin: 8px 0;
+.tab-content {
+  min-height: 200px;
+}
+
+.tab-panel {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   5. 향상된 수강 요약 스타일 (새로 추가)
+   ========================================================================== */
+.summary-header {
+  margin-bottom: 30px;
+}
+
+.summary-main-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 30px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-main-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.summary-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.summary-title {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.summary-subtitle {
+  font-size: 16px;
+  opacity: 0.9;
+  margin: 0 0 20px 0;
+}
+
+.credits-progress {
+  background: rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: white;
+  border-radius: 4px;
+  transition: width 1.5s ease;
+  box-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+
+.progress-text {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+}
+
+.analysis-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.analysis-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.card-header {
+  padding: 20px 20px 0 20px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--dark-color);
+  margin: 0 0 20px 0;
+}
+
+.card-icon {
+  font-size: 20px;
+}
+
+/* 카테고리 분류 스타일 */
+.category-breakdown {
+  padding: 0 20px 20px 20px;
+}
+
+.category-item {
+  margin-bottom: 15px;
+}
+
+.category-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.category-name {
+  font-weight: 500;
+  color: var(--dark-color);
+}
+
+.category-credits {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.category-bar {
+  height: 6px;
+  background: #f1f3f4;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.category-bar .bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+
+.major-required .bar-fill {
+  background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+}
+
+.major-elective .bar-fill {
+  background: linear-gradient(90deg, #4ecdc4, #44bd87);
+}
+
+.engineering-basic .bar-fill {
+  background: linear-gradient(90deg, #45b7d1, #4d79a4);
+}
+
+.others .bar-fill {
+  background: linear-gradient(90deg, #f39c12, #d68910);
+}
+
+/* 요일별 수업 분포 스타일 */
+.day-distribution {
+  padding: 0 20px 20px 20px;
+}
+
+.day-item {
+  margin-bottom: 12px;
+}
+
+.day-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.day-name {
+  font-weight: 500;
+  color: var(--dark-color);
+}
+
+.day-count {
   font-size: 14px;
   color: var(--gray-color);
 }
 
-.info-card strong {
-  color: var(--dark-color);
+.day-bar {
+  height: 4px;
+  background: #f1f3f4;
+  border-radius: 2px;
+  overflow: hidden;
 }
 
-/* 과목 목록 스타일 */
-.course-list {
-  margin-top: 20px;
+.day-bar .bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  border-radius: 2px;
+  transition: width 1s ease;
 }
 
-.course-list-title {
+/* 시간대 분석 스타일 */
+.time-stats {
+  padding: 0 20px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.time-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.time-stat-item:hover {
+  background: #e9ecef;
+}
+
+.stat-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon.morning {
+  background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+}
+
+.stat-icon.afternoon {
+  background: linear-gradient(135deg, #fd79a8, #e84393);
+}
+
+.stat-icon.evening {
+  background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--gray-color);
+  margin-bottom: 2px;
+}
+
+.stat-value {
   font-size: 18px;
+  font-weight: 600;
   color: var(--dark-color);
-  margin-bottom: 15px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid var(--primary-color);
+}
+
+/* 인사이트 카드 스타일 */
+.insights-content {
+  padding: 0 20px 20px 20px;
+}
+
+.insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px;
+  margin-bottom: 12px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border-left: 4px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.insight-item:hover {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.insight-item.warning {
+  border-left-color: #f39c12;
+  background: #fff8e1;
+}
+
+.insight-item.positive {
+  border-left-color: #27ae60;
+  background: #e8f5e8;
+}
+
+.insight-item.success {
+  border-left-color: #3498db;
+  background: #e3f2fd;
+}
+
+.insight-item.info {
+  border-left-color: #9b59b6;
+  background: #f3e5f5;
+}
+
+.insight-icon {
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.insight-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--dark-color);
+}
+
+/* 추천사항 스타일 */
+.recommendations-content {
+  padding: 0 20px 20px 20px;
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.recommendation-item:hover {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.rec-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.rec-badge.success {
+  background: linear-gradient(135deg, #00b894, #00a085);
+}
+
+.rec-badge.info {
+  background: linear-gradient(135deg, #0984e3, #74b9ff);
+}
+
+.rec-badge.tip {
+  background: linear-gradient(135deg, #fdcb6e, #e17055);
+}
+
+.rec-badge.default {
+  background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+}
+
+.rec-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--dark-color);
+}
+
+/* ==========================================================================
+   6. 카테고리별/학년별 리스트 스타일 (새로 추가)
+   ========================================================================== */
+.category-list, .grade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.category-section, .grade-section {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.category-title, .grade-title {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  padding: 15px 20px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.category-credits, .grade-count {
+  font-size: 14px;
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 20px;
 }
 
 .course-items {
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
 .course-item {
-  background-color: white;
-  border: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
   border-radius: 8px;
   padding: 15px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.2s;
+  transition: all 0.2s ease;
 }
 
 .course-item:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .course-header {
@@ -804,7 +1609,7 @@ export default {
 .course-category, .course-grade, .course-professor {
   font-size: 13px;
   color: var(--gray-color);
-  background-color: #f8f9fa;
+  background-color: #e9ecef;
   padding: 3px 8px;
   border-radius: 6px;
 }
@@ -830,7 +1635,129 @@ export default {
 }
 
 /* ==========================================================================
-   6. 액션 버튼
+   7. 피드백 섹션 (유효성 검사 스타일 추가)
+   ========================================================================== */
+.feedback-section {
+  padding: 30px;
+  border-top: 1px solid #e9ecef;
+}
+
+.feedback-title {
+  color: var(--dark-color);
+  font-size: 22px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.feedback-description {
+  color: var(--gray-color);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.feedback-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.feedback-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  resize: vertical;
+  font-family: inherit;
+  margin-bottom: 15px;
+  transition: border-color 0.3s ease;
+}
+
+.feedback-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.feedback-input.error {
+  border-color: #e53e3e;
+  background-color: #fff5f5;
+}
+
+.feedback-error {
+  color: #e53e3e;
+  background-color: #fff5f5;
+  border-left: 3px solid #e53e3e;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.submit-button {
+  padding: 12px 24px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  width: auto;
+  min-width: 200px;
+  text-align: center;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: var(--secondary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+}
+
+.submit-button:disabled,
+.submit-button.disabled {
+  background-color: #cbd5e0;
+  color: #a0aec0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 피드백 성공 메시지 */
+.feedback-success {
+  padding: 30px;
+  text-align: center;
+  border-top: 1px solid #e9ecef;
+}
+
+.success-icon {
+  background-color: #10b981;
+  color: white;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin: 0 auto 20px;
+}
+
+.success-title {
+  color: var(--dark-color);
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.success-message {
+  color: var(--gray-color);
+}
+
+/* ==========================================================================
+   8. 액션 버튼 및 기존 스타일들
    ========================================================================== */
 .action-buttons {
   display: flex;
@@ -873,7 +1800,6 @@ export default {
   cursor: not-allowed;
 }
 
-/* 로딩 스피너 애니메이션 */
 .loading-spinner {
   display: inline-block;
   width: 12px;
@@ -889,7 +1815,6 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-/* 알림 메시지 스타일 */
 .save-notification {
   position: fixed;
   bottom: 30px;
@@ -931,121 +1856,7 @@ export default {
 }
 
 /* ==========================================================================
-   7. 피드백 섹션
-   ========================================================================== */
-.feedback-section {
-  padding: 30px;
-  border-top: 1px solid #e9ecef;
-}
-
-.feedback-title {
-  color: var(--dark-color);
-  font-size: 22px;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-.feedback-description {
-  color: var(--gray-color);
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-/* 피드백 폼 */
-.feedback-form {
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* 중앙 정렬 */
-  gap: 15px;
-  margin-top: 15px;
-}
-
-.feedback-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  resize: vertical;
-  font-family: inherit;
-  margin-bottom: 15px;
-}
-
-.submit-button {
-  padding: 12px 24px;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-  width: auto; /* 버튼 너비를 컨텐츠에 맞게 자동 조정 */
-  min-width: 200px; /* 최소 너비 지정 */
-  text-align: center; /* 텍스트 중앙 정렬 */
-}
-
-.submit-button:hover {
-  background-color: var(--secondary-color);
-  transform: translateY(-2px);
-}
-
-.submit-button:hover:not(:disabled) {
-  background-color: var(--secondary-color);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
-}
-
-/* 피드백 성공 메시지 */
-.feedback-success {
-  padding: 30px;
-  text-align: center;
-  border-top: 1px solid #e9ecef;
-}
-
-.success-icon {
-  background-color: #10b981;
-  color: white;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  margin: 0 auto 20px;
-}
-
-.success-title {
-  color: var(--dark-color);
-  font-size: 22px;
-  margin-bottom: 10px;
-}
-
-.success-message {
-  color: var(--gray-color);
-}
-
-.feedback-error {
-  color: #e53e3e;
-  background-color: #fff5f5;
-  border-left: 3px solid #e53e3e;
-  padding: 10px;
-  margin-bottom: 15px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.submit-button:disabled {
-  background-color: #cbd5e0;
-  color: #a0aec0;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* ==========================================================================
-   8. 반응형 디자인 (미디어 쿼리)
+   9. 반응형 디자인
    ========================================================================== */
 @media (max-width: 768px) {
   .schedule-card {
@@ -1059,6 +1870,16 @@ export default {
   .schedule-item {
     font-size: 12px;
     padding: 4px;
+  }
+
+  .tab-menu {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tab-button {
+    margin: 0;
+    padding: 10px 16px;
   }
 
   .info-grid {
@@ -1077,6 +1898,12 @@ export default {
 
   .schedule-time {
     font-size: 12px;
+  }
+
+  .category-title, .grade-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 }
 </style>

@@ -11,12 +11,18 @@
         </svg>
       </button>
     </div>
+    <AppFooter type="simple" />  <!-- Footer -> AppFooter -->
   </div>
 </template>
 
 <script>
+import AppFooter from './Footer.vue';
+
 export default {
   name: 'StartComponent',
+  components: {
+    AppFooter
+  },
   methods: {
     onStartClick() {
       this.$emit('start-clicked');
@@ -30,11 +36,13 @@ export default {
   width: 100%;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   padding: 20px;
   box-sizing: border-box;
+  position: relative;
 }
 
 .start-content {
@@ -45,6 +53,7 @@ export default {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   max-width: 500px;
   width: 100%;
+  margin-bottom: 40px;
 }
 
 .title {
