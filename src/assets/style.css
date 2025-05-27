@@ -1,4 +1,6 @@
-/* Global Variables */
+/* ==========================================================================
+   글로벌 변수 및 기본 설정
+   ========================================================================== */
 :root {
   /* 메인 색상 */
   --primary-color: #4361ee;
@@ -9,43 +11,78 @@
   --light-color: #f8f9fa;
   --dark-color: #212529;
   --gray-color: #6c757d;
+  --light-gray: #e9ecef;
+  --border-color: #dee2e6;
 
   /* 배경색 */
   --bg-color: #f0f2f5;
+  --card-bg: #ffffff;
+
+  /* 상태 색상 */
+  --success-color: #10b981;
+  --warning-color: #f39c12;
+  --error-color: #ef4444;
+  --info-color: #3498db;
 
   /* 폰트 관련 */
   --font-family: 'Noto Sans KR', sans-serif;
   --heading-font-weight: 700;
   --body-font-weight: 400;
+
+  /* 간격 및 크기 */
+  --container-max-width: 1200px;
+  --card-max-width: 500px;
+  --border-radius: 16px;
+  --border-radius-small: 8px;
+  --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  --box-shadow-hover: 0 5px 15px rgba(67, 97, 238, 0.3);
+
+  /* 전환 효과 */
+  --transition-base: all 0.3s ease;
+  --transition-fast: all 0.2s ease;
 }
 
-/* Reset and Base Styles */
+/* ==========================================================================
+   기본 리셋 및 타이포그래피
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   padding: 0;
   font-family: var(--font-family);
   background-color: var(--bg-color);
   color: var(--dark-color);
+  font-weight: var(--body-font-weight);
+  line-height: 1.6;
 }
 
 button {
   cursor: pointer;
   font-family: var(--font-family);
+  border: none;
+  outline: none;
 }
 
-/* Common Container Styles */
+input, textarea {
+  font-family: var(--font-family);
+  outline: none;
+}
+
+/* ==========================================================================
+   레이아웃 컨테이너
+   ========================================================================== */
 .container {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--container-max-width);
   margin: 0 auto;
   padding: 0 15px;
 }
 
-/* Page Containers */
-.start-container,
-.question-container,
-.optimization-container,
-.schedule-container {
+/* 페이지 컨테이너 - 모든 페이지에서 사용 */
+.page-container {
   width: 100%;
   min-height: 100vh;
   display: flex;
@@ -56,54 +93,377 @@ button {
   box-sizing: border-box;
 }
 
-/* Card Styles */
-.start-content,
-.question-card,
-.schedule-card,
-.optimization-card {
-  background-color: white;
-  border-radius: 16px;
+/* 카드 컨테이너 */
+.card {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--box-shadow);
+  transition: var(--transition-base);
 }
 
-/* Button Styles */
-.action-button,
-.start-button,
-.answer-button {
-  border: none;
-  border-radius: 8px;
+.card-content {
+  padding: 30px;
+}
+
+.card-header {
+  padding: 30px 30px 0;
+  text-align: center;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+/* ==========================================================================
+   타이포그래피
+   ========================================================================== */
+.title {
+  color: var(--dark-color);
+  font-size: 28px;
+  margin-bottom: 16px;
+  font-weight: var(--heading-font-weight);
+  text-align: center;
+}
+
+.title-large {
+  font-size: 32px;
+}
+
+.subtitle {
+  color: var(--gray-color);
+  font-size: 16px;
+  margin: 0 0 24px 0;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.section-title {
+  font-size: 18px;
+  color: var(--gray-color);
+  margin-bottom: 15px;
   font-weight: 500;
-  transition: all 0.3s ease;
 }
 
-.action-button:hover,
-.start-button:hover {
+/* ==========================================================================
+   버튼 시스템
+   ========================================================================== */
+.btn {
+  padding: 12px 24px;
+  border-radius: var(--border-radius-small);
+  font-size: 16px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  min-width: 120px;
+}
+
+.btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
 }
 
-/* Primary Button Style */
-.primary-button {
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none !important;
+}
+
+/* 버튼 변형 */
+.btn-primary {
   background-color: var(--primary-color);
   color: white;
-  padding: 15px 30px;
-  font-size: 1.1rem;
 }
 
-.primary-button:hover {
+.btn-primary:hover:not(:disabled) {
   background-color: var(--secondary-color);
+  box-shadow: var(--box-shadow-hover);
 }
 
-/* Status Messages */
+.btn-secondary {
+  background-color: var(--light-gray);
+  color: var(--gray-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--border-color);
+}
+
+.btn-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.btn-warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.btn-error {
+  background-color: var(--error-color);
+  color: white;
+}
+
+/* 버튼 크기 */
+.btn-large {
+  padding: 16px 32px;
+  font-size: 18px;
+}
+
+.btn-small {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* 특수 버튼 */
+.btn-answer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: 500;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.btn-answer-yes {
+  background-color: #e8f3eb;
+  color: #2a9d46;
+}
+
+.btn-answer-yes:hover {
+  background-color: #d0e9d6;
+}
+
+.btn-answer-no {
+  background-color: #f9e9e9;
+  color: #e05252;
+}
+
+.btn-answer-no:hover {
+  background-color: #f5d6d6;
+}
+
+.btn-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: white;
+}
+
+.btn-answer-yes .btn-icon {
+  background-color: #2a9d46;
+}
+
+.btn-answer-no .btn-icon {
+  background-color: #e05252;
+}
+
+/* ==========================================================================
+   폼 요소
+   ========================================================================== */
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  font-size: 16px;
+  transition: var(--transition-fast);
+}
+
+.form-input:focus {
+  border-color: var(--primary-color);
+}
+
+.form-input.error {
+  border-color: var(--error-color);
+  background-color: #fff5f5;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-error {
+  color: var(--error-color);
+  background-color: #fff5f5;
+  border-left: 3px solid var(--error-color);
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* 슬라이더 */
+.slider {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--light-gray);
+  outline: none;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* ==========================================================================
+   상태 메시지
+   ========================================================================== */
 .status-message {
-  border-radius: 8px;
+  padding: 15px 20px;
+  border-radius: var(--border-radius-small);
   text-align: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  margin-bottom: 20px;
+  transition: var(--transition-base);
 }
 
-/* Animation Styles */
+.status-info {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.status-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.status-warning {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.status-error {
+  background-color: var(--error-color);
+  color: white;
+}
+
+/* ==========================================================================
+   진행 표시기
+   ========================================================================== */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: var(--light-gray);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--accent-color);
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   그리드 및 플렉스 유틸리티
+   ========================================================================== */
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.grid {
+  display: grid;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.grid-auto {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* ==========================================================================
+   간격 유틸리티
+   ========================================================================== */
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+.mb-4 { margin-bottom: 32px; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.mt-4 { margin-top: 32px; }
+
+.p-0 { padding: 0; }
+.p-1 { padding: 8px; }
+.p-2 { padding: 16px; }
+.p-3 { padding: 24px; }
+.p-4 { padding: 32px; }
+
+/* ==========================================================================
+   애니메이션
+   ========================================================================== */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s ease;
@@ -114,12 +474,664 @@ button {
   opacity: 0;
 }
 
-/* Responsive Design */
+.slide-up {
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.bounce {
+  animation: bounce 0.6s ease;
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: currentColor;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   알림 및 토스트
+   ========================================================================== */
+.notification {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: var(--border-radius-small);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideUp 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+}
+
+.notification-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.notification-error {
+  background-color: var(--error-color);
+  color: white;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ==========================================================================
+   반응형 디자인
+   ========================================================================== */
+@media (max-width: 1200px) {
+  :root {
+    --container-max-width: 960px;
+  }
+}
+
+@media (max-width: 992px) {
+  .card-content {
+    padding: 20px;
+  }
+
+  .card-header {
+    padding: 20px 20px 0;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
-  .start-content,
-  .question-card,
-  .schedule-card,
-  .optimization-card {
-    max-width: 95%;
+  .page-container {
+    padding: 15px;
+  }
+
+  .card-content {
+    padding: 15px;
+  }
+
+  .card-header {
+    padding: 15px 15px 0;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .btn-large {
+    padding: 14px 28px;
+    font-size: 16px;
+  }
+
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .flex-between {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .page-container {
+    padding: 10px;
+  }
+
+  .card-content {
+    padding: 12px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}
+
+/* ==========================================================================
+   모바일 최적화를 위한 추가 CSS 변수 (기존 :root 섹션에 추가)
+   ========================================================================== */
+:root {
+  /* 기존 변수들... */
+
+  /* 간격 시스템 - 8px 기반 */
+  --spacing-1: 8px;
+  --spacing-2: 16px;
+  --spacing-3: 24px;
+  --spacing-4: 32px;
+  --spacing-5: 40px;
+  --spacing-6: 48px;
+
+  /* 모바일 전용 변수 */
+  --mobile-header-height: 60px;
+  --mobile-bottom-bar-height: 80px;
+  --mobile-button-height: 56px;
+  --mobile-card-padding: 16px;
+  --mobile-border-radius: 12px;
+  --mobile-font-size-small: 12px;
+  --mobile-font-size-base: 14px;
+  --mobile-font-size-large: 18px;
+  --mobile-font-size-xl: 24px;
+
+  /* 터치 최적화 */
+  --touch-target-min: 44px;
+  --mobile-gap-small: 8px;
+  --mobile-gap-medium: 16px;
+  --mobile-gap-large: 24px;
+
+  /* 모바일 그림자 및 효과 */
+  --mobile-shadow-light: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --mobile-shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --mobile-shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+  /* 모바일 전환 효과 */
+  --mobile-transition-fast: all 0.2s ease;
+  --mobile-transition-normal: all 0.3s ease;
+  --mobile-transition-slow: all 0.5s ease;
+
+  /* Z-index 관리 */
+  --z-index-mobile-header: 100;
+  --z-index-mobile-bottom-bar: 90;
+  --z-index-modal: 1000;
+  --z-index-toast: 1100;
+}
+
+/* ==========================================================================
+   모바일 레이아웃 유틸리티 클래스
+   ========================================================================== */
+
+/* 모바일 컨테이너 */
+.mobile-container {
+  width: 100%;
+  max-width: 100vw;
+  padding: 0 var(--spacing-2);
+  margin: 0 auto;
+}
+
+.mobile-full-width {
+  width: 100%;
+  margin-left: calc(-1 * var(--spacing-2));
+  margin-right: calc(-1 * var(--spacing-2));
+}
+
+/* 모바일 카드 시스템 */
+.mobile-card {
+  background: var(--card-bg);
+  border-radius: var(--mobile-border-radius);
+  padding: var(--mobile-card-padding);
+  box-shadow: var(--mobile-shadow-light);
+  margin-bottom: var(--spacing-2);
+}
+
+.mobile-card-elevated {
+  box-shadow: var(--mobile-shadow-medium);
+}
+
+/* 모바일 그리드 시스템 */
+.mobile-grid {
+  display: grid;
+  gap: var(--mobile-gap-medium);
+}
+
+.mobile-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.mobile-grid-auto {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+/* 모바일 플렉스 유틸리티 */
+.mobile-flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.mobile-flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mobile-flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ==========================================================================
+   모바일 버튼 시스템 확장
+   ========================================================================== */
+
+/* 모바일 터치 최적화 버튼 */
+.btn-mobile {
+  min-height: var(--mobile-button-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: var(--mobile-font-size-base);
+  border-radius: var(--mobile-border-radius);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-mobile-large {
+  min-height: 64px;
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--mobile-font-size-large);
+}
+
+.btn-mobile-full {
+  width: 100%;
+  justify-content: space-between;
+}
+
+/* 모바일 플로팅 액션 버튼 */
+.btn-fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  position: fixed;
+  bottom: var(--spacing-3);
+  right: var(--spacing-3);
+  box-shadow: var(--mobile-shadow-heavy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-index-mobile-bottom-bar);
+}
+
+/* 모바일 하단 고정 버튼 */
+.mobile-bottom-button {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  padding: var(--spacing-2) var(--spacing-3);
+  z-index: var(--z-index-mobile-bottom-bar);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* ==========================================================================
+   모바일 타이포그래피 확장
+   ========================================================================== */
+
+.mobile-title {
+  font-size: var(--mobile-font-size-xl);
+  font-weight: var(--heading-font-weight);
+  line-height: 1.2;
+  margin-bottom: var(--spacing-2);
+}
+
+.mobile-subtitle {
+  font-size: var(--mobile-font-size-large);
+  font-weight: 500;
+  color: var(--gray-color);
+  line-height: 1.4;
+  margin-bottom: var(--spacing-3);
+}
+
+.mobile-body {
+  font-size: var(--mobile-font-size-base);
+  line-height: 1.5;
+  color: var(--dark-color);
+}
+
+.mobile-caption {
+  font-size: var(--mobile-font-size-small);
+  color: var(--gray-color);
+  line-height: 1.3;
+}
+
+/* ==========================================================================
+   모바일 폼 요소 확장
+   ========================================================================== */
+
+.mobile-form-group {
+  margin-bottom: var(--spacing-3);
+}
+
+.mobile-input {
+  width: 100%;
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-2);
+  font-size: var(--mobile-font-size-base);
+  border: 2px solid var(--border-color);
+  border-radius: var(--mobile-border-radius);
+  transition: var(--mobile-transition-fast);
+}
+
+.mobile-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.mobile-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* 모바일 슬라이더 */
+.mobile-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--light-gray);
+  border-radius: 3px;
+  outline: none;
+}
+
+.mobile-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: var(--mobile-shadow-light);
+}
+
+.mobile-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  background: var(--primary-color);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: var(--mobile-shadow-light);
+}
+
+/* ==========================================================================
+   모바일 간격 유틸리티 확장
+   ========================================================================== */
+
+/* 모바일 마진 */
+.mobile-m-0 { margin: 0; }
+.mobile-m-1 { margin: var(--spacing-1); }
+.mobile-m-2 { margin: var(--spacing-2); }
+.mobile-m-3 { margin: var(--spacing-3); }
+.mobile-m-4 { margin: var(--spacing-4); }
+
+.mobile-mt-0 { margin-top: 0; }
+.mobile-mt-1 { margin-top: var(--spacing-1); }
+.mobile-mt-2 { margin-top: var(--spacing-2); }
+.mobile-mt-3 { margin-top: var(--spacing-3); }
+.mobile-mt-4 { margin-top: var(--spacing-4); }
+
+.mobile-mb-0 { margin-bottom: 0; }
+.mobile-mb-1 { margin-bottom: var(--spacing-1); }
+.mobile-mb-2 { margin-bottom: var(--spacing-2); }
+.mobile-mb-3 { margin-bottom: var(--spacing-3); }
+.mobile-mb-4 { margin-bottom: var(--spacing-4); }
+
+/* 모바일 패딩 */
+.mobile-p-0 { padding: 0; }
+.mobile-p-1 { padding: var(--spacing-1); }
+.mobile-p-2 { padding: var(--spacing-2); }
+.mobile-p-3 { padding: var(--spacing-3); }
+.mobile-p-4 { padding: var(--spacing-4); }
+
+.mobile-px-2 { padding-left: var(--spacing-2); padding-right: var(--spacing-2); }
+.mobile-px-3 { padding-left: var(--spacing-3); padding-right: var(--spacing-3); }
+.mobile-py-2 { padding-top: var(--spacing-2); padding-bottom: var(--spacing-2); }
+.mobile-py-3 { padding-top: var(--spacing-3); padding-bottom: var(--spacing-3); }
+
+/* ==========================================================================
+   모바일 애니메이션 확장
+   ========================================================================== */
+
+.mobile-fade-in {
+  animation: mobileFadeIn 0.3s ease-out;
+}
+
+@keyframes mobileFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-slide-up {
+  animation: mobileSlideUp 0.3s ease-out;
+}
+
+@keyframes mobileSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.mobile-scale-in {
+  animation: mobileScaleIn 0.2s ease-out;
+}
+
+@keyframes mobileScaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   모바일 상태 및 피드백
+   ========================================================================== */
+
+.mobile-toast {
+  position: fixed;
+  bottom: var(--spacing-4);
+  left: var(--spacing-2);
+  right: var(--spacing-2);
+  background: var(--dark-color);
+  color: white;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--mobile-border-radius);
+  box-shadow: var(--mobile-shadow-heavy);
+  z-index: var(--z-index-toast);
+  animation: mobileSlideUp 0.3s ease-out;
+}
+
+.mobile-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-4);
+}
+
+.mobile-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--light-gray);
+  border-top: 3px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ==========================================================================
+   모바일 접근성 및 사용성
+   ========================================================================== */
+
+/* 터치 영역 확장 */
+.touch-target {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+}
+
+/* 스크롤 영역 최적화 */
+.mobile-scroll-area {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* 터치 하이라이트 제거 */
+.no-touch-highlight {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ==========================================================================
+   모바일 반응형 유틸리티
+   ========================================================================== */
+
+/* 모바일에서만 표시 */
+.mobile-only {
+  display: none;
+}
+
+/* 데스크톱에서만 표시 */
+.desktop-only {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  /* 모바일 플렉스 조정 */
+  .mobile-flex-col-on-mobile {
+    flex-direction: column;
+  }
+
+  .mobile-full-width-on-mobile {
+    width: 100%;
+  }
+
+  /* 모바일 간격 조정 */
+  .mobile-gap-small-on-mobile {
+    gap: var(--mobile-gap-small);
+  }
+
+  .mobile-gap-medium-on-mobile {
+    gap: var(--mobile-gap-medium);
+  }
+}
+
+/* ==========================================================================
+   PWA 및 네이티브 느낌 최적화
+   ========================================================================== */
+
+/* 안전 영역 지원 (아이폰 노치 등) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .mobile-safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .mobile-safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* 스크롤바 숨기기 (모바일 네이티브 느낌) */
+.mobile-hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mobile-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* 하드웨어 가속 활성화 */
+.mobile-hardware-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* ==========================================================================
+   모션 감소 대응 (접근성)
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-fade-in,
+  .mobile-slide-up,
+  .mobile-scale-in,
+  .mobile-loading-spinner {
+    animation: none !important;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
   }
 }

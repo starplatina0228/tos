@@ -37,6 +37,7 @@
               <div class="contact-item">
                 <span class="contact-label">Email.</span>
                 <span class="contact-value">cois.dankook@gmail.com</span>
+                <span class="contact-value">seung.choi@dankook.ac.kr</span>
               </div>
             </div>
           </div>

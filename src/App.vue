@@ -27,7 +27,7 @@
 
       <div v-else-if="currentView === 'optimization'" key="optimization">
         <optimization-component
-          :simulation-time="10000"
+          :simulation-time="7000"
           :optimization-data="{
             grade: grade,
             desired_credits: desiredCredits,
@@ -74,7 +74,7 @@ export default {
       currentView: 'start',
       currentQuestionIndex: 0,
       grade: null,
-      desiredCredits: 15,
+      desiredCredits: 18,
       questions: [
         '아침 수업을 선호하시나요?',                 // user_morning
         '저녁 시간대 수업은 피하고 싶으신가요?',     // user_late

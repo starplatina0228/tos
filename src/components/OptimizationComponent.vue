@@ -1,103 +1,232 @@
 <template>
-  <div class="optimization-container">
-    <div class="optimization-card">
-      <div class="status-message" :class="{
-        'completed': optimizationCompleted,
-        'error': optimizationFailed
-      }">
-        <template v-if="optimizationCompleted && !reoptimizing">
-          최적화 완료! 당신의 맞춤형 시간표가 준비되었습니다.
-          <div class="taken-course-hint">
-            시간표의 강의를 클릭하여 제외하고 다시 최적화할 수 있습니다.
+  <div class="optimization-container" :class="{ 'mobile-view': isMobile }">
+    <div v-if="!isMobile" class="desktop-layout">
+      <div class="optimization-card">
+        <div class="status-message" :class="{
+          'completed': optimizationCompleted,
+          'error': optimizationFailed
+        }">
+          <template v-if="optimizationCompleted && !reoptimizing">
+            최적화 완료! 당신의 맞춤형 시간표가 준비되었습니다.
+            <div class="taken-course-hint">
+              시간표의 강의를 클릭하여 제외하고 다시 최적화할 수 있습니다.
+            </div>
+          </template>
+          <template v-else-if="reoptimizing">
+            선택한 강의를 제외하고 시간표를 다시 최적화하는 중...
+          </template>
+          <template v-else-if="optimizationFailed">
+            {{ statusMessage }}
+            <div class="error-hint">
+              <p>시스템 오류가 발생했습니다. 다음 방법을 시도해보세요:</p>
+              <ul>
+                <li>페이지를 새로고침하고 다시 시도</li>
+                <li>다른 옵션으로 시도</li>
+                <li>문제가 지속되면 관리자에게 문의</li>
+              </ul>
+              <button class="retry-button" @click="retryOptimization">다시 시도</button>
+            </div>
+          </template>
+          <template v-else>
+            {{ statusMessage }}
+          </template>
+        </div>
+
+        <div class="timetable-container">
+          <div class="timetable">
+            <div class="timetable-row header-row">
+              <div class="timetable-cell time-header-cell"></div>
+              <div class="timetable-cell header-cell">월</div>
+              <div class="timetable-cell header-cell">화</div>
+              <div class="timetable-cell header-cell">수</div>
+              <div class="timetable-cell header-cell">목</div>
+              <div class="timetable-cell header-cell">금</div>
+            </div>
+
+            <div v-for="(row, rowIndex) in timetableCells" :key="`row-${rowIndex}`" class="timetable-row">
+              <div class="timetable-cell time-cell">{{ getTimeLabel(rowIndex) }}</div>
+              <div
+                v-for="(cell, colIndex) in row"
+                :key="`cell-${rowIndex}-${colIndex}`"
+                class="timetable-cell day-cell"
+                :class="{
+                  'selected-for-removal': cell.courseId && excludedCourses.includes(cell.courseId)
+                }"
+                :style="{
+                  backgroundColor: cell.color,
+                  opacity: cell.opacity
+                }"
+                @click="cell.courseId ? toggleCourseExclusion(cell) : null"
+              >
+                <div v-if="cell.title" class="cell-content">
+                  <div class="cell-title">{{ cell.title }}</div>
+                  <div v-if="cell.location" class="cell-location">{{ cell.location }}</div>
+                </div>
+              </div>
+            </div>
           </div>
-        </template>
-        <template v-else-if="reoptimizing">
-          선택한 강의를 제외하고 시간표를 다시 최적화하는 중...
-        </template>
-        <template v-else-if="optimizationFailed">
-          {{ statusMessage }}
-          <div class="error-hint">
-            <p>시스템 오류가 발생했습니다. 다음 방법을 시도해보세요:</p>
-            <ul>
-              <li>페이지를 새로고침하고 다시 시도</li>
-              <li>다른 옵션으로 시도</li>
-              <li>문제가 지속되면 관리자에게 문의</li>
-            </ul>
-            <button class="retry-button" @click="retryOptimization">다시 시도</button>
+        </div>
+
+        <div v-if="excludedCourses.length > 0" class="selected-courses-info">
+          <p>{{ excludedCourses.length }}개의 강의가 제외되었습니다.</p>
+          <div class="button-stack">
+            <button
+              class="reoptimize-button"
+              @click="reoptimizeSchedule"
+              :disabled="reoptimizing"
+            >
+              <span v-if="!reoptimizing">선택 강의 제외하고 재최적화</span>
+              <span v-else>재최적화 중...</span>
+            </button>
+            <button
+              v-if="optimizationCompleted && !reoptimizing"
+              class="action-button primary-button"
+              @click="onContinue"
+            >
+              시간표 확인하기
+            </button>
           </div>
-        </template>
-        <template v-else>
-          {{ statusMessage }}
-        </template>
+        </div>
+
+        <div class="button-container" v-if="optimizationCompleted && !reoptimizing && excludedCourses.length === 0">
+          <button class="action-button primary-button" @click="onContinue">
+            시간표 확인하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 모바일 레이아웃 -->
+    <div v-else class="mobile-layout">
+      <div class="mobile-header">
+        <div class="mobile-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: optimizationCompleted ? '100%' : '60%' }"></div>
+          </div>
+          <span class="progress-text">시간표 최적화 중...</span>
+        </div>
       </div>
 
-      <div class="timetable-container">
-        <div class="timetable">
-          <div class="timetable-row header-row">
-            <div class="timetable-cell time-header-cell"></div>
-            <div class="timetable-cell header-cell">월</div>
-            <div class="timetable-cell header-cell">화</div>
-            <div class="timetable-cell header-cell">수</div>
-            <div class="timetable-cell header-cell">목</div>
-            <div class="timetable-cell header-cell">금</div>
+      <div class="mobile-content">
+        <div class="mobile-status-card" :class="{
+          'completed': optimizationCompleted,
+          'error': optimizationFailed,
+          'loading': !optimizationCompleted && !optimizationFailed
+        }">
+          <div class="status-icon">
+            <div v-if="optimizationCompleted && !reoptimizing" class="icon-success">✓</div>
+            <div v-else-if="optimizationFailed" class="icon-error">⚠</div>
+            <div v-else class="loading-spinner"></div>
           </div>
 
-          <div v-for="(row, rowIndex) in timetableCells" :key="`row-${rowIndex}`" class="timetable-row">
-            <div class="timetable-cell time-cell">{{ getTimeLabel(rowIndex) }}</div>
-            <div
-              v-for="(cell, colIndex) in row"
-              :key="`cell-${rowIndex}-${colIndex}`"
-              class="timetable-cell day-cell"
-              :class="{
-                'selected-for-removal': cell.title && this.excludedCourses.includes(cell.courseId)
-              }"
-              :style="{
-                backgroundColor: cell.color,
-                opacity: cell.opacity
-              }"
-              @click="cell.title ? toggleCourseExclusion(cell) : null"
-            >
-              <div v-if="cell.title" class="cell-content">
-                <div class="cell-title">{{ cell.title }}</div>
-                <div v-if="cell.location" class="cell-location">{{ cell.location }}</div>
-              </div>
+          <div class="status-content">
+            <h2 class="mobile-status-title">
+              <template v-if="optimizationCompleted && !reoptimizing">최적화 완료!</template>
+              <template v-else-if="reoptimizing">재최적화 중...</template>
+              <template v-else-if="optimizationFailed">최적화 실패</template>
+              <template v-else>시간표 생성 중</template>
+            </h2>
+            <p class="mobile-status-description">{{ statusMessage }}</p>
+            <p class="mobile-status-description">(이미 수강한 과목이 있다면 클릭해서 제외)</p>
+          </div>
+        </div>
+
+        <div class="mobile-timetable-container">
+          <h3 class="section-title">시간표 미리보기</h3>
+          <div class="mobile-timetable">
+            <div class="mobile-day-header">
+              <div class="mobile-time-header">시간</div>
+              <div class="mobile-day">월</div>
+              <div class="mobile-day">화</div>
+              <div class="mobile-day">수</div>
+              <div class="mobile-day">목</div>
+              <div class="mobile-day">금</div>
+            </div>
+
+            <!-- 수정된 모바일 시간표 그리드 -->
+            <div class="mobile-grid-container">
+              <template v-for="(row, rowIndex) in timetableCells" :key="`mobile-row-${rowIndex}`">
+                <!-- 시간 셀 -->
+                <div class="mobile-time-cell">{{ getMobileTimeLabel(rowIndex) }}</div>
+
+                <!-- 요일별 셀들 -->
+                <div
+                  v-for="(cell, colIndex) in row"
+                  :key="`mobile-cell-${rowIndex}-${colIndex}`"
+                  class="mobile-day-cell"
+                  :class="{
+                    'has-content': cell.title,
+                    'selected-for-removal': cell.courseId && excludedCourses.includes(cell.courseId)
+                  }"
+                  :style="{
+                    backgroundColor: cell.color,
+                    opacity: cell.opacity
+                  }"
+                  @click="cell.courseId ? toggleCourseExclusion(cell) : null"
+                >
+                  <div v-if="cell.title" class="mobile-cell-content">
+                    <div class="mobile-cell-title" :title="cell.title">
+                      {{ getTruncatedTitle(cell.title) }}
+                    </div>
+                    <div v-if="cell.location" class="mobile-cell-location">
+                      {{ cell.location }}
+                    </div>
+                    <div class="mobile-cell-time">
+                      {{ cell.timeRange }}
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="excludedCourses.length > 0" class="mobile-excluded-section">
+          <div class="mobile-excluded-card">
+            <span class="excluded-icon">🚫</span>
+            <div class="excluded-info">
+              <h4 class="excluded-title">제외된 강의</h4>
+              <p class="excluded-count">{{ excludedCourses.length }}개 강의가 제외되었습니다</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 선택된 강의 정보 부분 수정 - 세로 배치로 변경 -->
-      <div v-if="excludedCourses.length > 0" class="selected-courses-info">
-        <p>{{ excludedCourses.length }}개의 강의가 제외되었습니다.</p>
+      <div class="mobile-action-bar">
+        <button
+          v-if="optimizationCompleted && !reoptimizing && excludedCourses.length === 0"
+          class="mobile-continue-button primary"
+          @click="onContinue"
+        >
+          시간표 확인하기
+        </button>
 
-        <!-- button-group을 button-stack으로 변경 (세로 정렬) -->
-        <div class="button-stack">
+        <div v-if="excludedCourses.length > 0" class="mobile-button-group">
           <button
-            class="reoptimize-button"
+            class="mobile-reoptimize-button"
             @click="reoptimizeSchedule"
             :disabled="reoptimizing"
           >
-            <span v-if="!reoptimizing">선택 강의 제외하고 재최적화</span>
-            <span v-else>재최적화 중...</span>
+            {{ reoptimizing ? '재최적화 중...' : '재최적화 실행' }}
           </button>
 
           <button
             v-if="optimizationCompleted && !reoptimizing"
-            class="action-button primary-button"
+            class="mobile-continue-button"
             @click="onContinue"
           >
             시간표 확인하기
           </button>
         </div>
-      </div>
 
-      <!-- 기존 버튼 컨테이너는 유지 (excludedCourses가 비어있을 때만 표시) -->
-      <div class="button-container" v-if="optimizationCompleted && !reoptimizing && excludedCourses.length === 0">
-        <button class="action-button primary-button" @click="onContinue">
-          시간표 확인하기
+        <button
+          v-if="optimizationFailed"
+          class="mobile-retry-button"
+          @click="retryOptimization"
+        >
+          다시 시도
         </button>
       </div>
-
     </div>
   </div>
 </template>
@@ -110,7 +239,7 @@ export default {
   props: {
     simulationTime: {
       type: Number,
-      default: 10000 // 10초
+      default: 7000 // 7초
     },
     optimizationData: {
       type: Object,
@@ -134,7 +263,7 @@ export default {
       statusMessage: "시간표 최적화 진행 중...",
       optimizationResult: null,
       timetableCells: [],
-      timeSlots: 18, // 9시간 (9시부터 18시까지)
+      timeSlots: 20, // 9:00~18:30, 30분 단위로 18슬롯
       daysOfWeek: 5,
       colors: ['#e67e22', '#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'],
       optimizationMessages: [
@@ -157,24 +286,29 @@ export default {
       optimizationFailed: false,
       excludedCourses: [],      // 제외할 강의 ID 배열
       reoptimizing: false,      // 재최적화 진행 중 상태
-      optimizationCount: 0      // 최적화 실행 횟수
-    }
+      optimizationCount: 0,     // 최적화 실행 횟수
+      isMobile: false,          // 모바일 여부
+    };
   },
 
   mounted() {
+    this.detectMobile();
     this.initTimetable();
     this.startOptimizationAnimation();
-
-    // API 호출
     this.callOptimizationAPI();
+
+    window.addEventListener('resize', this.detectMobile);
   },
-    beforeUnmount() {
+
+  beforeUnmount() {
     this.stopAnimations();
+    window.removeEventListener('resize', this.detectMobile);
   },
+
   methods: {
     // 초기화 함수
     initTimetable() {
-      // 시간표 초기화 - 30분 단위 18슬롯 (9:00-17:30)
+      // 시간표 초기화 - 30분 단위 18슬롯 (9:00~17:30)
       this.timetableCells = Array(this.timeSlots).fill().map(() =>
         Array(this.daysOfWeek).fill().map(() => ({
           color: 'white',
@@ -182,47 +316,55 @@ export default {
           title: '',
           location: '',
           courseId: null,
-          isNew: true // 기본적으로 모든 셀은 새 강의로 간주
+          isNew: true,
+          timeRange: ''
         }))
       );
     },
 
-    // 시간 레이블 생성 함수 수정
+    // 교시를 시간 슬롯 인덱스로 변환
+    convertPeriodToSlotIndex(period) {
+      // 교시 1 = 9:00 (슬롯 0), 교시 2 = 9:30 (슬롯 1), ...
+      const slotIndex = period - 1; // 30분 단위 슬롯 인덱스
+      return slotIndex;
+    },
+
+    // 시간 레이블 생성 함수
     getTimeLabel(index) {
-      // 30분 단위 레이블 생성 (0번 행 = 9:00, 1번 행 = 9:30, 2번 행 = 10:00...)
       const hour = Math.floor(index / 2) + 9;
       const minute = (index % 2) * 30;
       return `${hour}:${minute === 0 ? '00' : minute}`;
     },
 
+    // 교시를 시간 문자열로 변환
+    periodToTime(period) {
+      const totalMinutes = (period - 1) * 30; // 교시를 분으로 변환
+      const hour = Math.floor(totalMinutes / 60) + 9;
+      const minute = totalMinutes % 60;
+      return `${hour}:${minute === 0 ? '00' : minute}`;
+    },
+
     startOptimizationAnimation() {
-      // 상태 메시지 변경 인터벌 설정
       this.messageChangeInterval = setInterval(() => {
         const randomIndex = Math.floor(Math.random() * this.optimizationMessages.length);
         this.statusMessage = this.optimizationMessages[randomIndex];
-      }, 2500); // 2.5초마다 메시지 변경
+      }, 2500);
 
-      // 시간표 셀 애니메이션 인터벌 설정
       this.optimizationInterval = setInterval(() => {
         this.updateTimetableDuringOptimization();
-      }, 200); // 200ms마다 업데이트
+      }, 200);
     },
 
     updateTimetableDuringOptimization() {
-      // 최적화 진행 중 시간표 셀 업데이트
       for (let row = 0; row < this.timeSlots; row++) {
         for (let col = 0; col < this.daysOfWeek; col++) {
-          // 랜덤하게 셀 업데이트
           if (Math.random() > 0.7) {
             const randomValue = Math.random();
-
             if (randomValue > 0.8) {
-              // 랜덤 색상 할당
               const colorIndex = Math.floor(Math.random() * this.colors.length);
               this.timetableCells[row][col].color = this.colors[colorIndex];
               this.timetableCells[row][col].opacity = Math.random() * 0.5 + 0.5;
             } else if (randomValue > 0.4) {
-              // 색상 제거
               this.timetableCells[row][col].color = 'white';
               this.timetableCells[row][col].opacity = 1;
             }
@@ -234,14 +376,11 @@ export default {
     async callOptimizationAPI() {
       try {
         this.optimizationInProgress = true;
-
-        // Use the API config
         const apiUrl = API_CONFIG.getFullUrl(API_CONFIG.endpoints.SCHEDULE);
 
-        // 제거할 강의 목록을 요청 데이터에 추가
         const requestData = {
           ...this.optimizationData,
-          excluded_courses: this.excludedCourses // 모든 제외 과목 결합
+          excluded_courses: this.excludedCourses
         };
 
         console.log(`최적화 요청 데이터 (${this.optimizationCount + 1}번째 요청):`, requestData);
@@ -256,45 +395,27 @@ export default {
           throw new Error(`API 요청 실패: ${response.status}`);
         }
 
-        // API 응답 저장
         this.optimizationResult = await response.json();
         console.log(`최적화 결과 (${this.optimizationCount + 1}번째):`, this.optimizationResult);
 
-        // 최적화 카운트 증가
         this.optimizationCount++;
 
-        // 애니메이션 시간이 지나면 결과 표시
         setTimeout(() => {
           this.completeOptimization();
-        }, this.reoptimizing ? 2000 : this.simulationTime); // 재최적화일 경우 더 짧게
+        }, this.reoptimizing ? 2000 : this.simulationTime);
       } catch (error) {
         console.error('API 호출 오류:', error);
-
-        // 애니메이션 중지
         this.stopAnimations();
-
-        // 오류 메시지 표시
         this.optimizationCompleted = false;
         this.reoptimizing = false;
         this.statusMessage = "최적화 중 오류가 발생했습니다.";
-
-        // 사용자에게 알림
-        alert("시간표 최적화 중 오류가 발생했습니다. 관리자에게 문의하세요.");
-
-        // 테스트 데이터 사용하지 않고 오류 UI 표시
-        this.showErrorUI();
+        this.optimizationFailed = true;
       }
     },
 
-    // 오류 UI 표시 메서드 추가
     showErrorUI() {
-      // 최적화 실패 UI 표시
-      this.optimizationResult = null; // 결과 초기화
-
-      // 에러 상태 표시를 위한 클래스 추가
+      this.optimizationResult = null;
       this.statusMessage = "시간표 최적화에 실패했습니다.";
-
-      // 재시도 버튼 표시를 위한 상태 업데이트
       this.optimizationFailed = true;
     },
 
@@ -305,13 +426,10 @@ export default {
       this.statusMessage = "최적화 완료! 당신의 맞춤형 시간표가 준비되었습니다.";
 
       if (this.optimizationResult && this.optimizationResult.selected) {
-        // API 응답으로 시간표 표시
         this.displayOptimizedSchedule(this.optimizationResult.selected);
 
-        // 만약 결과에 제외된 강의 정보가 있다면 업데이트
         if (this.optimizationResult.excluded && this.optimizationResult.excluded.length > 0) {
           console.log("서버에서 제외된 강의: ", this.optimizationResult.excluded);
-          // excluded 필드에서 과목 ID만 추출하여 excludedCourses 업데이트
           const excludedIds = this.optimizationResult.excluded.map(course => course.subjId);
           this.excludedCourses = excludedIds;
         }
@@ -320,40 +438,45 @@ export default {
         return;
       }
 
-      // 재최적화가 끝났으면, 상태를 정리
       this.takenCoursesToRemove = [];
     },
 
     displayOptimizedSchedule(courses) {
       this.initTimetable();
 
-      // 색상 인덱스
       let colorIndex = 0;
 
       courses.forEach(course => {
         const courseColor = this.colors[colorIndex % this.colors.length];
         colorIndex++;
 
-        // schedule_info 배열에서 각 시간표 정보 처리
         course.schedule_info.forEach(schedule => {
           const day = schedule.day;
-          const start = schedule.start;
-          const end = schedule.end;
+          const start = schedule.start; // 교시 단위
+          const end = schedule.end;     // 교시 단위
           const location = schedule.location || '';
 
           const dayIndex = this.getDayIndex(day);
 
-          // 시간표에 표시 (30분 단위 고려)
-          for (let t = start; t <= end; t++) {
-            // 시간 인덱스 변환 (1교시 = 9:00 = 인덱스 0)
-            const timeIndex = t - 1;
+          // 교시를 시간 슬롯으로 변환
+          const startSlot = this.convertPeriodToSlotIndex(start);
+          const endSlot = this.convertPeriodToSlotIndex(end) + 1; // end 포함
 
-            if (timeIndex >= 0 && timeIndex < this.timeSlots && dayIndex >= 0 && dayIndex < this.daysOfWeek) {
-              this.timetableCells[timeIndex][dayIndex].color = courseColor;
-              this.timetableCells[timeIndex][dayIndex].opacity = 1;
-              this.timetableCells[timeIndex][dayIndex].title = course.name;
-              this.timetableCells[timeIndex][dayIndex].location = location;
-              this.timetableCells[timeIndex][dayIndex].courseId = course.subjId;
+          // 시간 범위 계산
+          const timeRange = `${this.periodToTime(start)} - ${this.periodToTime(end + 1)}`;
+
+          // 시간표에 표시 - 모든 슬롯에 동일한 정보 저장
+          for (let slot = startSlot; slot < endSlot; slot++) {
+            if (slot >= 0 && slot < this.timeSlots && dayIndex >= 0 && dayIndex < this.daysOfWeek) {
+              this.timetableCells[slot][dayIndex] = {
+                color: courseColor,
+                opacity: 1,
+                title: course.name,
+                location: location,
+                courseId: course.subjId,
+                timeRange: timeRange,
+                isNew: true
+              };
             }
           }
         });
@@ -366,7 +489,6 @@ export default {
     },
 
     stopAnimations() {
-      // 모든 애니메이션 중지
       if (this.optimizationInterval) {
         clearInterval(this.optimizationInterval);
       }
@@ -376,76 +498,91 @@ export default {
     },
 
     toggleCourseExclusion(cell) {
-      // 강의 선택/해제 토글
       if (!cell.courseId) return;
 
       console.log(`토글 강의: ${cell.title} (ID: ${cell.courseId})`);
 
       const index = this.excludedCourses.indexOf(cell.courseId);
       if (index === -1) {
-        // 아직 선택되지 않은 경우 추가
         this.excludedCourses.push(cell.courseId);
       } else {
-        // 이미 선택된 경우 제거
         this.excludedCourses.splice(index, 1);
       }
 
-      // 현재 선택 로그
       console.log('선택된 제외 강의:', this.excludedCourses);
     },
 
     reoptimizeSchedule() {
-      // 선택한 강의를 제외하고 시간표 재최적화
       if (this.excludedCourses.length === 0) {
-        return; // 선택된 강의가 없으면 아무 작업도 수행하지 않음
+        return;
       }
 
       this.reoptimizing = true;
-      this.optimizationCompleted = false; // 다시 최적화 시작
+      this.optimizationCompleted = false;
       this.statusMessage = "선택한 강의를 제외하고 시간표를 다시 최적화하는 중...";
 
-      // 선택된 강의 ID 로그 출력
       console.log(`${this.excludedCourses.length}개 강의를 제외하고 재최적화 시작:`, this.excludedCourses);
 
-      // 간단한 애니메이션 시작
       this.startOptimizationAnimation();
-
-      // API 호출하여 재최적화 수행
       this.callOptimizationAPI();
     },
 
     onContinue() {
-      // 최적화 완료 이벤트 발생 (결과가 있으면 전달)
       this.$emit('optimization-completed', this.optimizationResult);
     },
 
     retryOptimization() {
-      // 상태 초기화
       this.optimizationFailed = false;
       this.statusMessage = "시간표 최적화 진행 중...";
-
-      // 애니메이션 다시 시작
       this.startOptimizationAnimation();
-
-      // API 다시 호출
       this.callOptimizationAPI();
     },
+
+    detectMobile() {
+      this.isMobile = window.innerWidth <= 768;
+    },
+
+    getMobileTimeLabel(index) {
+      if (index % 2 === 0) {
+        const hour = Math.floor(index / 2) + 9;
+        return `${hour}`;
+      }
+      return '';
+    },
+
+    getTruncatedTitle(title, maxLength = 6) {
+      if (!title) return '';
+      if (this.isMobile && title.length > maxLength) {
+        return title.substring(0, maxLength) + '...';
+      }
+      return title;
+    }
   }
-}
+};
 </script>
 
 <style scoped>
 /* ==========================================================================
-   1. 컨테이너 및 카드 레이아웃
+   1. 기본 컨테이너 및 레이아웃 시스템
    ========================================================================== */
 .optimization-container {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+.optimization-container.mobile-view {
+  padding: 0;
+}
+
+/* 데스크톱 레이아웃 */
+.desktop-layout {
   width: 100%;
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  padding: 20px;
+  padding: var(--spacing-3);
   box-sizing: border-box;
 }
 
@@ -453,77 +590,74 @@ export default {
   width: 95%;
   max-width: 1000px;
   margin: 0 auto;
-  background-color: white;
-  border-radius: 16px;
-  padding: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-2);
+  box-shadow: var(--box-shadow);
   box-sizing: border-box;
-
 }
 
 /* ==========================================================================
-   2. 상태 메시지 및 알림
+   2. 데스크톱 상태 메시지 및 시간표 (기존 스타일 유지)
    ========================================================================== */
 .status-message {
   font-size: 1.1rem;
   font-weight: 500;
-  margin-bottom: 20px;
-  padding: 10px 20px;
+  margin-bottom: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
   background-color: var(--primary-color);
   color: white;
   text-align: center;
-  border-radius: 8px;
+  border-radius: var(--border-radius-small);
 }
 
 .status-message.completed {
-  background-color: #10b981;
+  background-color: var(--success-color);
   font-size: 1.4rem;
+}
+
+.status-message.error {
+  background-color: var(--error-color);
 }
 
 .taken-course-hint {
   font-size: 0.9rem;
-  margin-top: 8px;
+  margin-top: var(--spacing-1);
   opacity: 0.9;
 }
 
-/* 에러 상태 스타일 */
-.status-message.error {
-  background-color: #ef4444;
-}
-
 .error-hint {
-  margin-top: 12px;
+  margin-top: var(--spacing-2);
   font-size: 0.9rem;
 }
 
 .error-hint ul {
   text-align: left;
-  margin: 8px 0;
-  padding-left: 20px;
+  margin: var(--spacing-1) 0;
+  padding-left: var(--spacing-3);
 }
 
 .retry-button {
-  margin-top: 10px;
-  padding: 8px 16px;
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-1) var(--spacing-2);
   background-color: white;
-  color: #ef4444;
+  color: var(--error-color);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   font-weight: 500;
   cursor: pointer;
+  transition: var(--transition-fast);
 }
 
 .retry-button:hover {
-  background-color: #f9fafb;
+  background-color: var(--light-color);
 }
 
-/* ==========================================================================
-   3. 시간표 컨테이너와 테이블 구조
-   ========================================================================== */
+/* 시간표 컨테이너 */
 .timetable-container {
   width: 100%;
   padding: 0;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-3);
   overflow-x: auto;
 }
 
@@ -532,42 +666,39 @@ export default {
   table-layout: fixed;
   border-collapse: collapse;
   background-color: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  box-shadow: var(--box-shadow);
+  border-radius: var(--border-radius-small);
   overflow: hidden;
 }
 
 .timetable-row {
   display: flex;
-  border-bottom: 1px solid #e5e7eb;
-  height: 60px; /* 80px에서 60px로 줄임 */
+  border-bottom: 1px solid var(--border-color);
+  height: 60px;
 }
 
 .timetable-cell {
   flex: 1;
   padding: 0;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: var(--transition-base);
   box-sizing: border-box;
   min-width: 120px;
   position: relative;
 }
 
-/* ==========================================================================
-   4. 헤더와 시간 셀
-   ========================================================================== */
 .time-header-cell {
   flex: 0 0 100px;
   min-width: 100px;
-  background-color: #f8fafc;
+  background-color: var(--light-color);
 }
 
 .header-cell {
-  background-color: #f8fafc;
-  font-weight: 600;
+  background-color: var(--light-color);
+  font-weight: var(--heading-font-weight);
   height: 50px;
   font-size: 1.2rem;
 }
@@ -575,7 +706,7 @@ export default {
 .time-cell {
   flex: 0 0 100px;
   min-width: 100px;
-  background-color: #f8fafc;
+  background-color: var(--light-color);
   font-weight: 500;
   color: var(--gray-color);
   font-size: 1.1rem;
@@ -584,11 +715,13 @@ export default {
 .day-cell {
   flex: 1;
   min-width: 130px;
+  cursor: pointer;
 }
 
-/* ==========================================================================
-   5. 셀 내용 스타일
-   ========================================================================== */
+.day-cell:hover {
+  opacity: 0.8;
+}
+
 .cell-content {
   display: flex;
   flex-direction: column;
@@ -596,7 +729,7 @@ export default {
   align-items: center;
   width: 100%;
   height: 100%;
-  padding: 2px;
+  padding: var(--spacing-1);
   text-align: center;
 }
 
@@ -611,21 +744,6 @@ export default {
 .cell-location {
   font-size: 0.7rem;
   opacity: 0.8;
-}
-
-/* ==========================================================================
-   6. 이미 들은 강의 및 선택 표시
-   ========================================================================== */
-.taken-course-indicator {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background-color: rgba(255, 0, 0, 0.7);
-  color: white;
-  padding: 2px 6px;
-  font-size: 0.7rem;
-  border-radius: 0 6px 0 6px;
-  z-index: 2;
 }
 
 .selected-for-removal {
@@ -651,254 +769,683 @@ export default {
   z-index: 2;
 }
 
-/* ==========================================================================
-   7. 버튼 스타일
-   ========================================================================== */
+/* 데스크톱 버튼 스타일 */
 .button-container {
   display: flex;
   justify-content: center;
-  margin-top: 30px;
+  margin-top: var(--spacing-4);
 }
 
 .action-button, .reoptimize-button {
-  padding: 12px 24px;
+  padding: var(--spacing-2) var(--spacing-3);
   background-color: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--border-radius-small);
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--spacing-1);
 }
 
-.reoptimize-button {
-  margin-top: 20px;
+.action-button:hover, .reoptimize-button:hover {
+  background-color: var(--secondary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-hover);
 }
 
 .reoptimize-button:disabled, .action-button:disabled {
-  background-color: #cbd5e0;
-  color: #a0aec0;
+  background-color: var(--light-gray);
+  color: var(--gray-color);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
 .selected-courses-info {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #f8fafc;
-  border-radius: 8px;
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-2);
+  background-color: var(--light-color);
+  border-radius: var(--border-radius-small);
   text-align: center;
-  border: 1px solid #e5e7eb;
-}
-/* 버튼 그룹 스타일 */
-.button-group {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 15px;
+  border: 1px solid var(--border-color);
 }
 
-/* selected-courses-info 내부 정렬 수정 */
-.selected-courses-info {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  text-align: center;
-  border: 1px solid #e5e7eb;
-}
-
-/* 재최적화 버튼 스타일 */
-.reoptimize-button {
-  padding: 12px 24px;
-  background-color: #6b7280;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.reoptimize-button:hover:not(:disabled) {
-  background-color: #4b5563;
-  transform: translateY(-2px);
-}
-
-/* 세로 정렬 버튼 스택 */
 .button-stack {
   display: flex;
-  flex-direction: column; /* 세로 정렬 */
-  align-items: center;    /* 가운데 정렬 */
-  gap: 12px;              /* 버튼 사이 간격 */
-  margin-top: 15px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-2);
 }
 
-/* 버튼 너비 설정 */
 .button-stack button {
-  width: 100%;           /* 전체 너비 */
-  max-width: 300px;      /* 최대 너비 제한 */
+  width: 100%;
+  max-width: 300px;
 }
 
 /* ==========================================================================
-   8. 그리드 행 구분선
+   3. 모바일 레이아웃 시스템
    ========================================================================== */
-.grid-row-divider {
+.mobile-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.mobile-header {
+  padding: var(--spacing-3);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobile-progress {
+  text-align: center;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-1);
+}
+
+.progress-fill {
+  height: 100%;
+  background: white;
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+
+.progress-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--mobile-font-size-base);
+  font-weight: 500;
+}
+
+.mobile-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-2);
+}
+
+/* ==========================================================================
+   4. 모바일 상태 카드
+   ========================================================================== */
+.mobile-status-card {
+  background: white;
+  border-radius: var(--mobile-border-radius);
+  padding: var(--spacing-4);
+  box-shadow: var(--mobile-shadow-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  transition: var(--mobile-transition-normal);
+  margin-bottom: var(--spacing-3);
+}
+
+.mobile-status-card.loading {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.mobile-status-card.completed {
+  background: linear-gradient(135deg, var(--success-color) 0%, #00a085 100%);
+  color: white;
+}
+
+.mobile-status-card.error {
+  background: linear-gradient(135deg, var(--error-color) 0%, #dc2626 100%);
+  color: white;
+}
+
+.status-icon {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.status-content {
+  flex: 1;
+}
+
+.mobile-status-title {
+  font-size: var(--mobile-font-size-large);
+  font-weight: var(--heading-font-weight);
+  margin: 0 0 var(--spacing-1) 0;
+}
+
+.mobile-status-description {
+  font-size: var(--mobile-font-size-base);
+  margin: 0;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+/* ==========================================================================
+   5. 수정된 모바일 시간표 - 단순화된 그리드
+   ========================================================================== */
+.mobile-timetable-container {
+  background: white;
+  border-radius: var(--mobile-border-radius);
+  padding: var(--mobile-card-padding);
+  box-shadow: var(--mobile-shadow-medium);
+  margin-bottom: var(--spacing-3);
+  width: 100%;
+  overflow-x: visible;
+}
+
+.section-title {
+  color: var(--dark-color);
+  font-size: var(--mobile-font-size-large);
+  font-weight: var(--heading-font-weight);
+  margin: 0 0 var(--spacing-2) 0;
+  text-align: center;
+}
+
+.mobile-timetable {
+  width: 100%;
+  min-width: auto;
+}
+
+.mobile-day-header {
+  display: grid;
+  grid-template-columns: minmax(45px, 1fr) repeat(5, 2fr);
+  background: var(--light-color);
+  border-radius: var(--mobile-border-radius);
+  margin-bottom: var(--spacing-1);
+  gap: 1px;
+}
+
+.mobile-time-header, .mobile-day {
+  padding: var(--spacing-1);
+  text-align: center;
+  font-size: var(--mobile-font-size-small);
+  font-weight: var(--heading-font-weight);
+  color: var(--gray-color);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.mobile-grid-container {
+  display: grid;
+  grid-template-columns: minmax(45px, 1fr) repeat(5, 2fr);
+  gap: 1px;
+  grid-auto-rows: 30px;
+  width: 100%;
+}
+
+.mobile-time-cell {
+  background: var(--light-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--gray-color);
+  font-weight: 500;
+  border-radius: var(--border-radius-small);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.mobile-day-cell {
+  background: #fafafa;
+  border-radius: var(--border-radius-small);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: var(--mobile-transition-fast);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+}
+
+.mobile-day-cell.has-content {
+  cursor: pointer;
+}
+
+.mobile-day-cell.has-content:active {
+  transform: scale(0.95);
+}
+
+.mobile-day-cell.selected-for-removal {
+  opacity: 0.6 !important;
+  position: relative;
+}
+
+.mobile-day-cell.selected-for-removal::after {
+  content: '✕';
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background-color: #e9ecef;
-  z-index: 1;
+  top: 2px;
+  right: 2px;
+  color: white;
+  font-size: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.mobile-cell-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 2px;
+  text-align: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.mobile-cell-title {
+  font-size: 8px;
+  font-weight: 600;
+  color: white;
+  line-height: 1.2;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  letter-spacing: -0.2px;
+}
+
+.mobile-cell-location {
+  font-size: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1;
+  margin-bottom: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.mobile-cell-time {
+  font-size: 5px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
 }
 
 /* ==========================================================================
-   9. 반응형 디자인
+   6. 모바일 제외된 강의 섹션
    ========================================================================== */
-@media (max-width: 1200px) {
-  .optimization-card {
-    padding: 15px;
-  }
-
-  .timetable-cell {
-    min-width: 110px;
-  }
+.mobile-excluded-section {
+  margin-bottom: var(--spacing-3);
 }
 
+.mobile-excluded-card {
+  background: white;
+  border-radius: var(--mobile-border-radius);
+  padding: var(--spacing-3);
+  box-shadow: var(--mobile-shadow-light);
+  border-left: 4px solid var(--warning-color);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.excluded-icon {
+  font-size: 24px;
+}
+
+.excluded-info {
+  flex: 1;
+}
+
+.excluded-title {
+  font-size: var(--mobile-font-size-base);
+  font-weight: var(--heading-font-weight);
+  color: var(--dark-color);
+  margin: 0 0 4px 0;
+}
+
+.excluded-count {
+  font-size: var(--mobile-font-size-small);
+  color: var(--gray-color);
+  margin: 0;
+}
+
+/* ==========================================================================
+   7. 모바일 하단 액션 바
+   ========================================================================== */
+.mobile-action-bar {
+  background: white;
+  border-top: 1px solid var(--border-color);
+  padding: var(--spacing-3);
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-index-mobile-bottom-bar);
+  box-shadow: var(--mobile-shadow-medium);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.mobile-button-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.mobile-continue-button,
+.mobile-reoptimize-button,
+.mobile-retry-button {
+  min-height: var(--mobile-button-height);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--mobile-border-radius);
+  font-size: var(--mobile-font-size-base);
+  font-weight: var(--heading-font-weight);
+  border: none;
+  cursor: pointer;
+  transition: var(--mobile-transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-continue-button {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+}
+
+.mobile-continue-button.primary {
+  width: 100%;
+}
+
+.mobile-reoptimize-button {
+  background: var(--gray-color);
+  color: white;
+}
+
+.mobile-retry-button {
+  background: var(--warning-color);
+  color: white;
+}
+
+.mobile-continue-button:active,
+.mobile-reoptimize-button:active,
+.mobile-retry-button:active {
+  transform: scale(0.98);
+}
+
+.mobile-reoptimize-button:disabled {
+  background: var(--light-gray);
+  color: var(--gray-color);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================================================
+   8. 반응형 최적화
+   ========================================================================== */
 @media (max-width: 992px) {
-  .optimization-card {
+  .desktop-layout .optimization-card {
     width: 95%;
-    padding: 15px;
+    padding: var(--spacing-2);
   }
 
-  .status-message {
-    font-size: 1.1rem;
-    padding: 12px 20px;
-  }
-
-  .timetable-row {
-    height: 65px;
-  }
-
-  .timetable-cell {
+  .desktop-layout .timetable-cell {
     min-width: 100px;
   }
 
-  .time-cell, .time-header-cell {
+  .desktop-layout .time-cell,
+  .desktop-layout .time-header-cell {
     flex: 0 0 80px;
     min-width: 80px;
-  }
-
-  .header-cell {
-    font-size: 1rem;
-  }
-
-  .cell-title {
-    font-size: 0.85rem;
-  }
-
-  .cell-location {
-    font-size: 0.75rem;
   }
 }
 
 @media (max-width: 768px) {
-  .optimization-card {
+  .desktop-layout .optimization-card {
     width: 100%;
-    padding: 10px;
+    padding: var(--spacing-1);
   }
 
-  .timetable-row {
-    height: 60px;
-  }
-
-  .time-cell, .time-header-cell {
-    flex: 0 0 70px;
-    min-width: 70px;
-    font-size: 0.9rem;
-  }
-
-  .header-cell {
-    font-size: 1rem;
+  .desktop-layout .timetable-row {
     height: 50px;
   }
 
-  .day-cell {
-    min-width: 90px;
-  }
-
-  .status-message {
-    font-size: 1rem;
-    padding: 10px 15px;
-  }
-
-  .status-message.completed {
-    font-size: 1.1rem;
-  }
-
-  .cell-title {
+  .desktop-layout .time-cell,
+  .desktop-layout .time-header-cell {
+    flex: 0 0 60px;
+    min-width: 60px;
     font-size: 0.8rem;
   }
 
-  .cell-location {
-    font-size: 0.7rem;
+  .desktop-layout .day-cell {
+    min-width: 80px;
   }
 
-  .taken-course-indicator {
-    font-size: 0.6rem;
-    padding: 1px 4px;
+  .desktop-layout .cell-title {
+    font-size: 0.7rem;
   }
 }
 
-@media (max-width: 576px) {
-  .optimization-card {
-    padding: 8px;
+/* 모바일 화면 크기별 최적화 */
+@media (max-width: 480px) {
+  .mobile-day-header {
+    grid-template-columns: minmax(40px, 0.8fr) repeat(5, 1.8fr);
+    gap: 0.5px;
   }
 
-  .timetable-row {
-    height: 50px;
+  .mobile-grid-container {
+    grid-template-columns: minmax(40px, 0.8fr) repeat(5, 1.8fr);
+    gap: 0.5px;
+    grid-auto-rows: 28px;
   }
 
-  .time-cell, .time-header-cell {
-    flex: 0 0 50px;
-    min-width: 50px;
-    font-size: 0.7rem;
-  }
-
-  .header-cell {
-    font-size: 0.8rem;
+  .mobile-time-header, .mobile-day {
+    font-size: 10px;
     padding: 6px 2px;
   }
 
-  .timetable-cell {
-    min-width: 70px;
+  .mobile-time-cell {
+    font-size: 8px;
     padding: 2px;
   }
 
-  .cell-title {
-    font-size: 0.7rem;
-    margin-bottom: 1px;
+  .mobile-cell-title {
+    font-size: 7px;
   }
 
-  .cell-location {
-    font-size: 0.6rem;
+  .mobile-cell-location {
+    font-size: 5px;
   }
 
-  .status-message {
-    font-size: 0.9rem;
-    padding: 8px 10px;
+  .mobile-cell-time {
+    font-size: 4px;
+  }
+}
+
+@media (max-width: 360px) {
+  .mobile-day-header {
+    grid-template-columns: minmax(35px, 0.7fr) repeat(5, 1.7fr);
+    gap: 0.5px;
   }
 
-  .reoptimize-button, .action-button {
-    padding: 10px 16px;
-    font-size: 0.9rem;
+  .mobile-grid-container {
+    grid-template-columns: minmax(35px, 0.7fr) repeat(5, 1.7fr);
+    gap: 0.5px;
+    grid-auto-rows: 26px;
+  }
+
+  .mobile-time-header, .mobile-day {
+    font-size: 9px;
+    padding: 4px 1px;
+  }
+
+  .mobile-time-cell {
+    font-size: 7px;
+    padding: 1px;
+  }
+
+  .mobile-cell-title {
+    font-size: 6px;
+    -webkit-line-clamp: 1;
+  }
+
+  .mobile-cell-location {
+    font-size: 4px;
+  }
+
+  .mobile-cell-time {
+    font-size: 3px;
+  }
+
+  .section-title {
+    font-size: var(--mobile-font-size-base);
+  }
+}
+
+@media (max-width: 320px) {
+  .mobile-day-header {
+    grid-template-columns: minmax(30px, 0.6fr) repeat(5, 1.6fr);
+  }
+
+  .mobile-grid-container {
+    grid-template-columns: minmax(30px, 0.6fr) repeat(5, 1.6fr);
+    grid-auto-rows: 24px;
+  }
+
+  .mobile-time-header, .mobile-day {
+    font-size: 8px;
+    padding: 3px 1px;
+  }
+
+  .mobile-time-cell {
+    font-size: 6px;
+  }
+
+  .mobile-cell-title {
+    font-size: 5px;
+  }
+
+  .mobile-cell-location,
+  .mobile-cell-time {
+    display: none;
+  }
+}
+
+/* 가로 모드 최적화 */
+@media (max-width: 768px) and (orientation: landscape) {
+  .mobile-grid-container {
+    grid-auto-rows: 32px;
+  }
+
+  .mobile-cell-title {
+    font-size: 9px;
+  }
+
+  .mobile-cell-location {
+    font-size: 7px;
+  }
+
+  .mobile-cell-time {
+    font-size: 6px;
+  }
+
+  .mobile-time-cell {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-header {
+    padding: var(--spacing-2);
+  }
+
+  .mobile-content {
+    padding: var(--spacing-1);
+  }
+
+  .mobile-status-card {
+    padding: var(--spacing-3);
+    gap: var(--spacing-2);
+  }
+
+  .status-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .mobile-action-bar {
+    padding: var(--spacing-2);
+  }
+}
+
+/* ==========================================================================
+   9. 접근성 및 모션 최적화
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-status-card,
+  .mobile-day-cell,
+  .mobile-continue-button,
+  .mobile-reoptimize-button,
+  .mobile-retry-button,
+  .progress-fill,
+  .loading-spinner {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .mobile-status-card {
+    border: 2px solid var(--border-color);
+  }
+
+  .mobile-timetable-container {
+    border: 2px solid var(--border-color);
+  }
+
+  .mobile-day-cell.has-content {
+    border: 1px solid rgba(0, 0, 0, 0.3);
   }
 }
 </style>
