@@ -85,6 +85,7 @@
 
         <div class="mobile-footer-text">
           <p><strong>COIS Lab</strong>과 함께하는 스마트한 학습 계획</p>
+          <p><strong>TL : </strong>Seung Chan Choi</p>
         </div>
       </div>
     </div>
