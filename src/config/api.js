@@ -1,22 +1,3 @@
-// src/config/api.js
-// export const API_CONFIG = {
-//   // ======= API URL 설정 =======
-//   BASE_URL: 'https://6b57-210-102-204-31.ngrok-free.app',
-//   // ===========================
-
-//   endpoints: {
-//     SCHEDULE: '/api/schedule',
-//     FEEDBACK: '/api/feedback'
-//   },
-
-//   getFullUrl(endpoint) {
-//     return `${this.BASE_URL}${endpoint}`;
-//   }
-// };
-
-
-// Koyeb 배포를 위한 API 설정
-
 const API_CONFIG = {
   // 개발/프로덕션 환경 구분
   development: {
@@ -24,7 +5,7 @@ const API_CONFIG = {
   },
   
   production: {
-    BASE_URL: 'https://your-app-name.koyeb.app'  // Koyeb 배포 후 실제 URL로 변경해야함
+    BASE_URL: 'political-bellanca-cois-b2b1d89e.koyeb.app/'  // Koyeb 배포 후 실제 URL로 변경해야함
   },
   
   // 현재 환경 감지
