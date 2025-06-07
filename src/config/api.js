@@ -5,7 +5,7 @@ const API_CONFIG = {
   },
   
   production: {
-    BASE_URL: 'political-bellanca-cois-b2b1d89e.koyeb.app' 
+    BASE_URL: 'https://political-bellanca-cois-b2b1d89e.koyeb.app' 
   },
   
   // 현재 환경 감지
