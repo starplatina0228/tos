@@ -376,7 +376,10 @@ export default {
     async callOptimizationAPI() {
       try {
         this.optimizationInProgress = true;
+        
+        // API 설정에서 엔드포인트 URL 가져오기
         const apiUrl = API_CONFIG.getFullUrl(API_CONFIG.endpoints.SCHEDULE);
+        console.log(`API 호출 URL: ${apiUrl}`);
 
         const requestData = {
           ...this.optimizationData,
@@ -385,33 +388,77 @@ export default {
 
         console.log(`최적화 요청 데이터 (${this.optimizationCount + 1}번째 요청):`, requestData);
 
-        const response = await fetch(apiUrl, {
+        // API_CONFIG의 헬퍼 함수 사용
+        this.optimizationResult = await API_CONFIG.callAPI(API_CONFIG.endpoints.SCHEDULE, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData)
         });
 
-        if (!response.ok) {
-          throw new Error(`API 요청 실패: ${response.status}`);
-        }
-
-        this.optimizationResult = await response.json();
         console.log(`최적화 결과 (${this.optimizationCount + 1}번째):`, this.optimizationResult);
-
         this.optimizationCount++;
 
         setTimeout(() => {
           this.completeOptimization();
         }, this.reoptimizing ? 2000 : this.simulationTime);
+        
       } catch (error) {
         console.error('API 호출 오류:', error);
         this.stopAnimations();
         this.optimizationCompleted = false;
         this.reoptimizing = false;
-        this.statusMessage = "최적화 중 오류가 발생했습니다.";
+        
+        // 더 자세한 에러 메시지
+        if (error.message.includes('Failed to fetch')) {
+          this.statusMessage = "서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.";
+        } else if (error.message.includes('CORS')) {
+          this.statusMessage = "서버 설정 오류입니다. 잠시 후 다시 시도해주세요.";
+        } else {
+          this.statusMessage = `최적화 중 오류가 발생했습니다: ${error.message}`;
+        }
+        
         this.optimizationFailed = true;
       }
     },
+
+    // async callOptimizationAPI() {
+    //   try {
+    //     this.optimizationInProgress = true;
+    //     const apiUrl = API_CONFIG.getFullUrl(API_CONFIG.endpoints.SCHEDULE);
+
+    //     const requestData = {
+    //       ...this.optimizationData,
+    //       excluded_courses: this.excludedCourses
+    //     };
+
+    //     console.log(`최적화 요청 데이터 (${this.optimizationCount + 1}번째 요청):`, requestData);
+
+    //     const response = await fetch(apiUrl, {
+    //       method: 'POST',
+    //       headers: { 'Content-Type': 'application/json' },
+    //       body: JSON.stringify(requestData)
+    //     });
+
+    //     if (!response.ok) {
+    //       throw new Error(`API 요청 실패: ${response.status}`);
+    //     }
+
+    //     this.optimizationResult = await response.json();
+    //     console.log(`최적화 결과 (${this.optimizationCount + 1}번째):`, this.optimizationResult);
+
+    //     this.optimizationCount++;
+
+    //     setTimeout(() => {
+    //       this.completeOptimization();
+    //     }, this.reoptimizing ? 2000 : this.simulationTime);
+    //   } catch (error) {
+    //     console.error('API 호출 오류:', error);
+    //     this.stopAnimations();
+    //     this.optimizationCompleted = false;
+    //     this.reoptimizing = false;
+    //     this.statusMessage = "최적화 중 오류가 발생했습니다.";
+    //     this.optimizationFailed = true;
+    //   }
+    // },
 
     showErrorUI() {
       this.optimizationResult = null;
