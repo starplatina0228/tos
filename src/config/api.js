@@ -5,7 +5,7 @@ const API_CONFIG = {
   },
   
   production: {
-    BASE_URL: 'political-bellanca-cois-b2b1d89e.koyeb.app/'  // Koyeb 배포 후 실제 URL로 변경해야함
+    BASE_URL: 'political-bellanca-cois-b2b1d89e.koyeb.app'  // Koyeb 배포 후 실제 URL로 변경해야함
   },
   
   // 현재 환경 감지
