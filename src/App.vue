@@ -27,7 +27,7 @@
 
       <div v-else-if="currentView === 'optimization'" key="optimization">
         <optimization-component
-          :simulation-time="7000"
+          :simulation-time="4000"
           :optimization-data="{
             grade: grade,
             desired_credits: desiredCredits,

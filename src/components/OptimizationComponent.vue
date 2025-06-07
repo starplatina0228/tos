@@ -239,7 +239,7 @@ export default {
   props: {
     simulationTime: {
       type: Number,
-      default: 7000 // 7초
+      default: 4000 // 4초
     },
     optimizationData: {
       type: Object,
